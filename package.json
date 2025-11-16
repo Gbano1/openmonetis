@@ -6,6 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "env:setup": "bash scripts/setup-env.sh",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
