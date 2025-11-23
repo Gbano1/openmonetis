@@ -1,10 +1,11 @@
-import { cartoes, lancamentos } from "@/db/schema";
+import { cartoes, lancamentos, pagadores } from "@/db/schema";
 import {
   ACCOUNT_AUTO_INVOICE_NOTE_PREFIX,
   INITIAL_BALANCE_NOTE,
 } from "@/lib/accounts/constants";
 import { db } from "@/lib/db";
 import { toNumber } from "@/lib/dashboard/common";
+import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 // Calcula a data de vencimento baseada no período e dia de vencimento do cartão
@@ -58,7 +59,7 @@ export type InstallmentAnalysisData = {
 export async function fetchInstallmentAnalysis(
   userId: string
 ): Promise<InstallmentAnalysisData> {
-  // 1. Buscar todos os lançamentos parcelados não antecipados
+  // 1. Buscar todos os lançamentos parcelados não antecipados do pagador admin
   const installmentRows = await db
     .select({
       id: lancamentos.id,
@@ -80,6 +81,7 @@ export async function fetchInstallmentAnalysis(
     })
     .from(lancamentos)
     .leftJoin(cartoes, eq(lancamentos.cartaoId, cartoes.id))
+    .leftJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
     .where(
       and(
         eq(lancamentos.userId, userId),
@@ -87,6 +89,7 @@ export async function fetchInstallmentAnalysis(
         eq(lancamentos.condition, "Parcelado"),
         eq(lancamentos.isAnticipated, false),
         isNotNull(lancamentos.seriesId),
+        eq(pagadores.role, PAGADOR_ROLE_ADMIN),
         or(
           isNull(lancamentos.note),
           and(
