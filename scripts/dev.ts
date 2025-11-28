@@ -12,6 +12,6 @@ console.log(`Starting Next.js development server on port ${port}...`);
 
 // Executar next dev com a porta especificada
 execSync(`npx next dev --turbopack --port ${port}`, {
-  stdio: 'inherit',
-  env: { ...process.env, PORT: port }
+    stdio: 'inherit',
+    env: { ...process.env, PORT: port }
 });
