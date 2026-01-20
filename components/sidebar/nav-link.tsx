@@ -177,6 +177,11 @@ export function createSidebarNavData(pagadores: PagadorLike[]): SidebarNavData {
             url: "/relatorios/categorias",
             icon: RiFileChartLine,
           },
+          {
+            title: "Cartões",
+            url: "/relatorios/cartoes",
+            icon: RiBankCard2Line,
+          },
         ],
       },
     ],
