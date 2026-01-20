@@ -1,9 +1,9 @@
+import MonthNavigation from "@/components/month-picker/month-navigation";
 import { CardCategoryBreakdown } from "@/components/relatorios/cartoes/card-category-breakdown";
 import { CardInvoiceStatus } from "@/components/relatorios/cartoes/card-invoice-status";
 import { CardTopExpenses } from "@/components/relatorios/cartoes/card-top-expenses";
 import { CardUsageChart } from "@/components/relatorios/cartoes/card-usage-chart";
 import { CardsOverview } from "@/components/relatorios/cartoes/cards-overview";
-import MonthNavigation from "@/components/month-picker/month-navigation";
 import { getUser } from "@/lib/auth/server";
 import { fetchCartoesReportData } from "@/lib/relatorios/cartoes-report";
 import { parsePeriodParam } from "@/lib/utils/period";
@@ -40,16 +40,7 @@ export default async function RelatorioCartoesPage({
   );
 
   return (
-    <main className="flex flex-col gap-4 px-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Relatório de Cartões
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Análise detalhada do uso dos seus cartões de crédito.
-        </p>
-      </div>
-
+    <main className="flex flex-col gap-4">
       <MonthNavigation />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -60,15 +51,13 @@ export default async function RelatorioCartoesPage({
         <div className="lg:col-span-2 space-y-4">
           {data.selectedCard ? (
             <>
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <h2 className="text-lg font-semibold">
-                  {data.selectedCard.card.name}
-                </h2>
-              </div>
-
               <CardUsageChart
                 data={data.selectedCard.monthlyUsage}
                 limit={data.selectedCard.card.limit}
+                card={{
+                  name: data.selectedCard.card.name,
+                  logo: data.selectedCard.card.logo,
+                }}
               />
 
               <div className="grid gap-4 md:grid-cols-2">
