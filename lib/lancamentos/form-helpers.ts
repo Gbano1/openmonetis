@@ -3,7 +3,11 @@
  */
 
 import type { LancamentoItem } from "@/components/lancamentos/types";
-import { LANCAMENTO_CONDITIONS, LANCAMENTO_PAYMENT_METHODS, LANCAMENTO_TRANSACTION_TYPES } from "./constants";
+import {
+  LANCAMENTO_CONDITIONS,
+  LANCAMENTO_PAYMENT_METHODS,
+  LANCAMENTO_TRANSACTION_TYPES,
+} from "./constants";
 import { derivePeriodFromDate } from "@/lib/utils/period";
 import { getTodayDateString } from "@/lib/utils/date";
 
@@ -39,6 +43,7 @@ export type LancamentoFormOverrides = {
   defaultCartaoId?: string | null;
   defaultPaymentMethod?: string | null;
   defaultPurchaseDate?: string | null;
+  defaultTransactionType?: "Despesa" | "Receita";
   isImporting?: boolean;
 };
 
@@ -49,11 +54,11 @@ export function buildLancamentoInitialState(
   lancamento?: LancamentoItem,
   defaultPagadorId?: string | null,
   preferredPeriod?: string,
-  overrides?: LancamentoFormOverrides
+  overrides?: LancamentoFormOverrides,
 ): LancamentoFormState {
   const purchaseDate = lancamento?.purchaseDate
     ? lancamento.purchaseDate.slice(0, 10)
-    : overrides?.defaultPurchaseDate ?? "";
+    : (overrides?.defaultPurchaseDate ?? "");
 
   const paymentMethod =
     lancamento?.paymentMethod ??
@@ -84,7 +89,11 @@ export function buildLancamentoInitialState(
     let baseAmount = Math.abs(lancamento.amount);
 
     // Se está importando e é parcelado, usar o valor total (parcela * quantidade)
-    if (isImporting && lancamento.condition === "Parcelado" && lancamento.installmentCount) {
+    if (
+      isImporting &&
+      lancamento.condition === "Parcelado" &&
+      lancamento.installmentCount
+    ) {
       baseAmount = baseAmount * lancamento.installmentCount;
     }
 
@@ -99,7 +108,9 @@ export function buildLancamentoInitialState(
         : fallbackPeriod,
     name: lancamento?.name ?? "",
     transactionType:
-      lancamento?.transactionType ?? LANCAMENTO_TRANSACTION_TYPES[0],
+      lancamento?.transactionType ??
+      overrides?.defaultTransactionType ??
+      LANCAMENTO_TRANSACTION_TYPES[0],
     amount: amountValue,
     condition: lancamento?.condition ?? LANCAMENTO_CONDITIONS[0],
     paymentMethod,
@@ -109,12 +120,18 @@ export function buildLancamentoInitialState(
     contaId:
       paymentMethod === "Cartão de crédito"
         ? undefined
-        : isImporting ? undefined : (lancamento?.contaId ?? undefined),
+        : isImporting
+          ? undefined
+          : (lancamento?.contaId ?? undefined),
     cartaoId:
       paymentMethod === "Cartão de crédito"
-        ? isImporting ? (overrides?.defaultCartaoId ?? undefined) : (lancamento?.cartaoId ?? overrides?.defaultCartaoId ?? undefined)
+        ? isImporting
+          ? (overrides?.defaultCartaoId ?? undefined)
+          : (lancamento?.cartaoId ?? overrides?.defaultCartaoId ?? undefined)
         : undefined,
-    categoriaId: isImporting ? undefined : (lancamento?.categoriaId ?? undefined),
+    categoriaId: isImporting
+      ? undefined
+      : (lancamento?.categoriaId ?? undefined),
     installmentCount: lancamento?.installmentCount
       ? String(lancamento.installmentCount)
       : "",
@@ -127,7 +144,7 @@ export function buildLancamentoInitialState(
     isSettled:
       paymentMethod === "Cartão de crédito"
         ? null
-        : lancamento?.isSettled ?? true,
+        : (lancamento?.isSettled ?? true),
   };
 }
 
@@ -139,7 +156,7 @@ export function applyFieldDependencies(
   key: keyof LancamentoFormState,
   value: LancamentoFormState[keyof LancamentoFormState],
   currentState: LancamentoFormState,
-  _periodDirty: boolean
+  _periodDirty: boolean,
 ): Partial<LancamentoFormState> {
   const updates: Partial<LancamentoFormState> = {};
 
@@ -174,11 +191,15 @@ export function applyFieldDependencies(
     if (value !== "Boleto") {
       updates.dueDate = "";
       updates.boletoPaymentDate = "";
-    } else if (currentState.isSettled || (updates.isSettled !== null && updates.isSettled !== undefined)) {
+    } else if (
+      currentState.isSettled ||
+      (updates.isSettled !== null && updates.isSettled !== undefined)
+    ) {
       // Set today's date for boleto payment if settled
       const settled = updates.isSettled ?? currentState.isSettled;
       if (settled) {
-        updates.boletoPaymentDate = currentState.boletoPaymentDate || getTodayDateString();
+        updates.boletoPaymentDate =
+          currentState.boletoPaymentDate || getTodayDateString();
       }
     }
   }
@@ -199,7 +220,8 @@ export function applyFieldDependencies(
   // When isSettled changes and payment method is Boleto
   if (key === "isSettled" && currentState.paymentMethod === "Boleto") {
     if (value === true) {
-      updates.boletoPaymentDate = currentState.boletoPaymentDate || getTodayDateString();
+      updates.boletoPaymentDate =
+        currentState.boletoPaymentDate || getTodayDateString();
     } else if (value === false) {
       updates.boletoPaymentDate = "";
     }

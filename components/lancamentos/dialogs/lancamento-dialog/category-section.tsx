@@ -24,10 +24,13 @@ export function CategorySection({
   categoriaOptions,
   categoriaGroups,
   isUpdateMode,
+  hideTransactionType = false,
 }: CategorySectionProps) {
+  const showTransactionTypeField = !isUpdateMode && !hideTransactionType;
+
   return (
     <div className="flex w-full flex-col gap-2 md:flex-row">
-      {!isUpdateMode ? (
+      {showTransactionTypeField ? (
         <div className="w-full space-y-1 md:w-1/2">
           <Label htmlFor="transactionType">Tipo de transação</Label>
           <Select
@@ -45,7 +48,7 @@ export function CategorySection({
             </SelectTrigger>
             <SelectContent>
               {LANCAMENTO_TRANSACTION_TYPES.filter(
-                (type) => type !== "Transferência"
+                (type) => type !== "Transferência",
               ).map((type) => (
                 <SelectItem key={type} value={type}>
                   <TransactionTypeSelectContent label={type} />
@@ -59,7 +62,7 @@ export function CategorySection({
       <div
         className={cn(
           "space-y-1 w-full",
-          !isUpdateMode ? "md:w-1/2" : "md:w-full"
+          showTransactionTypeField ? "md:w-1/2" : "md:w-full",
         )}
       >
         <Label htmlFor="categoria">Categoria</Label>
@@ -72,7 +75,7 @@ export function CategorySection({
               {formState.categoriaId &&
                 (() => {
                   const selectedOption = categoriaOptions.find(
-                    (opt) => opt.value === formState.categoriaId
+                    (opt) => opt.value === formState.categoriaId,
                   );
                   return selectedOption ? (
                     <CategoriaSelectContent

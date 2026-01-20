@@ -23,6 +23,7 @@ export interface LancamentoDialogProps {
   lockCartaoSelection?: boolean;
   lockPaymentMethod?: boolean;
   isImporting?: boolean;
+  defaultTransactionType?: "Despesa" | "Receita";
   onBulkEditRequest?: (data: {
     id: string;
     name: string;
@@ -41,7 +42,7 @@ export interface BaseFieldSectionProps {
   formState: FormState;
   onFieldChange: <Key extends keyof FormState>(
     key: Key,
-    value: FormState[Key]
+    value: FormState[Key],
   ) => void;
 }
 
@@ -56,6 +57,7 @@ export interface CategorySectionProps extends BaseFieldSectionProps {
     options: SelectOption[];
   }>;
   isUpdateMode: boolean;
+  hideTransactionType?: boolean;
 }
 
 export interface SplitAndSettlementSectionProps extends BaseFieldSectionProps {

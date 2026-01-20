@@ -63,12 +63,13 @@ export function LancamentoDialog({
   lockCartaoSelection,
   lockPaymentMethod,
   isImporting = false,
+  defaultTransactionType,
   onBulkEditRequest,
 }: LancamentoDialogProps) {
   const [dialogOpen, setDialogOpen] = useControlledState(
     open,
     false,
-    onOpenChange
+    onOpenChange,
   );
 
   const [formState, setFormState] = useState<FormState>(() =>
@@ -76,8 +77,9 @@ export function LancamentoDialog({
       defaultCartaoId,
       defaultPaymentMethod,
       defaultPurchaseDate,
+      defaultTransactionType,
       isImporting,
-    })
+    }),
   );
   const [periodDirty, setPeriodDirty] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -94,9 +96,10 @@ export function LancamentoDialog({
             defaultCartaoId,
             defaultPaymentMethod,
             defaultPurchaseDate,
+            defaultTransactionType,
             isImporting,
-          }
-        )
+          },
+        ),
       );
       setErrorMessage(null);
       setPeriodDirty(false);
@@ -109,6 +112,7 @@ export function LancamentoDialog({
     defaultCartaoId,
     defaultPaymentMethod,
     defaultPurchaseDate,
+    defaultTransactionType,
     isImporting,
   ]);
 
@@ -116,17 +120,16 @@ export function LancamentoDialog({
 
   const secondaryPagadorOptions = useMemo(
     () => filterSecondaryPagadorOptions(splitPagadorOptions, primaryPagador),
-    [splitPagadorOptions, primaryPagador]
+    [splitPagadorOptions, primaryPagador],
   );
 
   const categoriaGroups = useMemo(() => {
     const filtered = categoriaOptions.filter(
       (option) =>
-        option.group?.toLowerCase() === formState.transactionType.toLowerCase()
+        option.group?.toLowerCase() === formState.transactionType.toLowerCase(),
     );
     return groupAndSortCategorias(filtered);
   }, [categoriaOptions, formState.transactionType]);
-
 
   const handleFieldChange = useCallback(
     <Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
@@ -139,7 +142,7 @@ export function LancamentoDialog({
           key,
           value,
           prev,
-          periodDirty
+          periodDirty,
         );
 
         return {
@@ -149,7 +152,7 @@ export function LancamentoDialog({
         };
       });
     },
-    [periodDirty]
+    [periodDirty],
   );
 
   const handleSubmit = useCallback(
@@ -302,25 +305,35 @@ export function LancamentoDialog({
       lancamento?.seriesId,
       setDialogOpen,
       onBulkEditRequest,
-    ]
+    ],
   );
 
   const isCopyMode = mode === "create" && Boolean(lancamento) && !isImporting;
   const isImportMode = mode === "create" && Boolean(lancamento) && isImporting;
-  const title = mode === "create"
-    ? isImportMode
-      ? "Importar para Minha Conta"
-      : isCopyMode
-      ? "Copiar lançamento"
-      : "Novo lançamento"
-    : "Editar lançamento";
+  const isNewWithType =
+    mode === "create" && !lancamento && defaultTransactionType;
+
+  const title =
+    mode === "create"
+      ? isImportMode
+        ? "Importar para Minha Conta"
+        : isCopyMode
+          ? "Copiar lançamento"
+          : isNewWithType
+            ? defaultTransactionType === "Despesa"
+              ? "Nova Despesa"
+              : "Nova Receita"
+            : "Novo lançamento"
+      : "Editar lançamento";
   const description =
     mode === "create"
       ? isImportMode
         ? "Importando lançamento de outro usuário. Ajuste a categoria, pagador e cartão/conta antes de salvar."
         : isCopyMode
-        ? "Os dados do lançamento foram copiados. Revise e ajuste conforme necessário antes de salvar."
-        : "Informe os dados abaixo para registrar um novo lançamento."
+          ? "Os dados do lançamento foram copiados. Revise e ajuste conforme necessário antes de salvar."
+          : isNewWithType
+            ? `Informe os dados abaixo para registrar ${defaultTransactionType === "Despesa" ? "uma nova despesa" : "uma nova receita"}.`
+            : "Informe os dados abaixo para registrar um novo lançamento."
       : "Atualize as informações do lançamento selecionado.";
   const submitLabel = mode === "create" ? "Salvar lançamento" : "Atualizar";
 
@@ -358,6 +371,7 @@ export function LancamentoDialog({
             categoriaOptions={categoriaOptions}
             categoriaGroups={categoriaGroups}
             isUpdateMode={isUpdateMode}
+            hideTransactionType={Boolean(isNewWithType)}
           />
 
           {!isUpdateMode ? (

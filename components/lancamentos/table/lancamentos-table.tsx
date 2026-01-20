@@ -73,13 +73,13 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { LancamentosExport } from "../lancamentos-export";
 import { EstabelecimentoLogo } from "../shared/estabelecimento-logo";
 import type {
   ContaCartaoFilterOption,
   LancamentoFilterOption,
   LancamentoItem,
 } from "../types";
-import { LancamentosExport } from "../lancamentos-export";
 import { LancamentosFilters } from "./lancamentos-filters";
 
 const resolveLogoSrc = (logo: string | null) => {
@@ -325,7 +325,7 @@ const buildColumns = ({
               isReceita
                 ? "text-green-600 dark:text-green-400"
                 : "text-foreground",
-              isTransfer && "text-blue-700 dark:text-blue-500"
+              isTransfer && "text-blue-700 dark:text-blue-500",
             )}
           />
         );
@@ -432,8 +432,8 @@ const buildColumns = ({
         const href = cartaoId
           ? `/cartoes/${cartaoId}/fatura`
           : contaId
-          ? `/contas/${contaId}/extrato`
-          : null;
+            ? `/contas/${contaId}/extrato`
+            : null;
         const Icon = cartaoId ? RiBankCard2Line : contaId ? RiBankLine : null;
         const isOwnData = userId === currentUserId;
 
@@ -468,7 +468,7 @@ const buildColumns = ({
             href={href ?? "#"}
             className={cn(
               "flex items-center gap-2",
-              href ? "underline " : "pointer-events-none"
+              href ? "underline " : "pointer-events-none",
             )}
             aria-disabled={!href}
           >
@@ -553,18 +553,20 @@ const buildColumns = ({
                   Editar
                 </DropdownMenuItem>
               )}
-              {row.original.categoriaName !== "Pagamentos" && row.original.userId === currentUserId && (
-                <DropdownMenuItem onSelect={() => handleCopy(row.original)}>
-                  <RiFileCopyLine className="size-4" />
-                  Copiar
-                </DropdownMenuItem>
-              )}
-              {row.original.categoriaName !== "Pagamentos" && row.original.userId !== currentUserId && (
-                <DropdownMenuItem onSelect={() => handleImport(row.original)}>
-                  <RiFileCopyLine className="size-4" />
-                  Importar para Minha Conta
-                </DropdownMenuItem>
-              )}
+              {row.original.categoriaName !== "Pagamentos" &&
+                row.original.userId === currentUserId && (
+                  <DropdownMenuItem onSelect={() => handleCopy(row.original)}>
+                    <RiFileCopyLine className="size-4" />
+                    Copiar
+                  </DropdownMenuItem>
+                )}
+              {row.original.categoriaName !== "Pagamentos" &&
+                row.original.userId !== currentUserId && (
+                  <DropdownMenuItem onSelect={() => handleImport(row.original)}>
+                    <RiFileCopyLine className="size-4" />
+                    Importar para Minha Conta
+                  </DropdownMenuItem>
+                )}
               {row.original.userId === currentUserId && (
                 <DropdownMenuItem
                   variant="destructive"
@@ -628,7 +630,7 @@ type LancamentosTableProps = {
   categoriaFilterOptions?: LancamentoFilterOption[];
   contaCartaoFilterOptions?: ContaCartaoFilterOption[];
   selectedPeriod?: string;
-  onCreate?: () => void;
+  onCreate?: (type: "Despesa" | "Receita") => void;
   onMassAdd?: () => void;
   onEdit?: (item: LancamentoItem) => void;
   onCopy?: (item: LancamentoItem) => void;
@@ -704,7 +706,7 @@ export function LancamentosTable({
       onViewAnticipationHistory,
       isSettlementLoading,
       showActions,
-    ]
+    ],
   );
 
   const table = useReactTable({
@@ -731,7 +733,7 @@ export function LancamentosTable({
   const selectedCount = selectedRows.length;
   const selectedTotal = selectedRows.reduce(
     (total, row) => total + (row.original.amount ?? 0),
-    0
+    0,
   );
 
   // Check if there's any data from other users
@@ -763,10 +765,24 @@ export function LancamentosTable({
           {onCreate || onMassAdd ? (
             <div className="flex gap-2">
               {onCreate ? (
-                <Button onClick={onCreate} className="w-full sm:w-auto">
-                  <RiAddCircleLine className="size-4" />
-                  Novo lançamento
-                </Button>
+                <>
+                  <Button
+                    onClick={() => onCreate("Receita")}
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                  >
+                    <RiAddCircleLine className="size-4 text-green-500" />
+                    Nova Receita
+                  </Button>
+                  <Button
+                    onClick={() => onCreate("Despesa")}
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                  >
+                    <RiAddCircleLine className="size-4 text-red-500" />
+                    Nova Despesa
+                  </Button>
+                </>
               ) : null}
               {onMassAdd ? (
                 <Tooltip>
@@ -813,7 +829,9 @@ export function LancamentosTable({
         </div>
       ) : null}
 
-      {selectedCount > 0 && onBulkDelete && selectedRows.every(row => row.original.userId === currentUserId) ? (
+      {selectedCount > 0 &&
+      onBulkDelete &&
+      selectedRows.every((row) => row.original.userId === currentUserId) ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
           <div className="flex flex-col text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-2">
             <span>
@@ -843,7 +861,9 @@ export function LancamentosTable({
         </div>
       ) : null}
 
-      {selectedCount > 0 && onBulkImport && selectedRows.some(row => row.original.userId !== currentUserId) ? (
+      {selectedCount > 0 &&
+      onBulkImport &&
+      selectedRows.some((row) => row.original.userId !== currentUserId) ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
           <div className="flex flex-col text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-2">
             <span>
@@ -891,7 +911,7 @@ export function LancamentosTable({
                               ? null
                               : flexRender(
                                   header.column.columnDef.header,
-                                  header.getContext()
+                                  header.getContext(),
                                 )}
                           </TableHead>
                         ))}
@@ -905,7 +925,7 @@ export function LancamentosTable({
                           <TableCell key={cell.id}>
                             {flexRender(
                               cell.column.columnDef.cell,
-                              cell.getContext()
+                              cell.getContext(),
                             )}
                           </TableCell>
                         ))}
