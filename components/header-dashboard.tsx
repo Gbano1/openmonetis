@@ -1,4 +1,3 @@
-import { ChangelogLink } from "@/components/changelog/changelog-link";
 import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
 import { NotificationBell } from "@/components/notificacoes/notification-bell";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -29,7 +28,6 @@ export async function SiteHeader({ notificationsSnapshot }: SiteHeaderProps) {
           <PrivacyModeToggle />
           <AnimatedThemeToggler />
           <span className="text-muted-foreground">|</span>
-          <ChangelogLink />
           <FeedbackDialog />
           <LogoutButton />
         </div>
