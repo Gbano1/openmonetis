@@ -3,6 +3,11 @@
 import MoneyValues from "@/components/money-values";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import type { IncomeByCategoryData } from "@/lib/dashboard/categories/income-by-category";
+import {
+  buildCategoryInitials,
+  getCategoryBgColor,
+  getCategoryColor,
+} from "@/lib/utils/category-colors";
 import { getIconComponent } from "@/lib/utils/icons";
 import { formatPeriodForUrl } from "@/lib/utils/period";
 import {
@@ -23,20 +28,6 @@ import { WidgetEmptyState } from "../widget-empty-state";
 type IncomeByCategoryWidgetWithChartProps = {
   data: IncomeByCategoryData;
   period: string;
-};
-
-const buildInitials = (value: string) => {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return "CT";
-  }
-  if (parts.length === 1) {
-    const firstPart = parts[0];
-    return firstPart ? firstPart.slice(0, 2).toUpperCase() : "CT";
-  }
-  const firstChar = parts[0]?.[0] ?? "";
-  const secondChar = parts[1]?.[0] ?? "";
-  return `${firstChar}${secondChar}`.toUpperCase() || "CT";
 };
 
 const formatPercentage = (value: number) => {
@@ -170,11 +161,13 @@ export function IncomeByCategoryWidgetWithChart({
 
       <TabsContent value="list" className="mt-0">
         <div className="flex flex-col px-0">
-          {data.categories.map((category) => {
+          {data.categories.map((category, index) => {
             const IconComponent = category.categoryIcon
               ? getIconComponent(category.categoryIcon)
               : null;
-            const initials = buildInitials(category.categoryName);
+            const initials = buildCategoryInitials(category.categoryName);
+            const color = getCategoryColor(index);
+            const bgColor = getCategoryBgColor(index);
             const hasIncrease =
               category.percentageChange !== null &&
               category.percentageChange > 0;
@@ -199,11 +192,17 @@ export function IncomeByCategoryWidgetWithChart({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
+                    <div
+                      className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg"
+                      style={{ backgroundColor: bgColor }}
+                    >
                       {IconComponent ? (
-                        <IconComponent className="size-4 text-foreground" />
+                        <IconComponent className="size-4" style={{ color }} />
                       ) : (
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">
+                        <span
+                          className="text-xs font-semibold uppercase"
+                          style={{ color }}
+                        >
                           {initials}
                         </span>
                       )}
