@@ -6,7 +6,7 @@ import type { NoteSectionProps } from "./lancamento-dialog-types";
 
 export function NoteSection({ formState, onFieldChange }: NoteSectionProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       <Label htmlFor="note">Anotação</Label>
       <Textarea
         id="note"
@@ -14,6 +14,7 @@ export function NoteSection({ formState, onFieldChange }: NoteSectionProps) {
         onChange={(event) => onFieldChange("note", event.target.value)}
         placeholder="Adicione observações sobre o lançamento"
         rows={2}
+        className="min-h-[36px] resize-none"
       />
     </div>
   );
