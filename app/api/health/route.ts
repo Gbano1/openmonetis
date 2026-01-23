@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+const APP_VERSION = "1.0.0";
+
 /**
- * Health check endpoint para Docker e monitoring
+ * Health check endpoint para Docker, monitoring e OpenSheets Companion
  * GET /api/health
  *
  * Retorna status 200 se a aplicação está saudável
  * Verifica conexão com banco de dados
+ * Usado pelo app Android para validar URL do servidor
  */
 export async function GET() {
   try {
@@ -17,8 +20,9 @@ export async function GET() {
     return NextResponse.json(
       {
         status: "ok",
+        name: "OpenSheets",
+        version: APP_VERSION,
         timestamp: new Date().toISOString(),
-        service: "opensheets-app",
       },
       { status: 200 }
     );
@@ -29,9 +33,10 @@ export async function GET() {
     return NextResponse.json(
       {
         status: "error",
+        name: "OpenSheets",
+        version: APP_VERSION,
         timestamp: new Date().toISOString(),
-        service: "opensheets-app",
-        error: error instanceof Error ? error.message : "Database connection failed",
+        message: error instanceof Error ? error.message : "Database connection failed",
       },
       { status: 503 }
     );
