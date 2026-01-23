@@ -2,12 +2,13 @@
 
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db";
-import { pagadores } from "@/db/schema";
+import { apiTokens, pagadores } from "@/db/schema";
 import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createHash, randomBytes } from "crypto";
 
 type ActionResponse<T = void> = {
   success: boolean;
@@ -409,6 +410,153 @@ export async function updatePreferencesAction(
     return {
       success: false,
       error: "Erro ao atualizar preferências. Tente novamente.",
+    };
+  }
+}
+
+// API Token Actions
+
+const createApiTokenSchema = z.object({
+  name: z.string().min(1, "Nome do dispositivo é obrigatório").max(100),
+});
+
+const revokeApiTokenSchema = z.object({
+  tokenId: z.string().uuid("ID do token inválido"),
+});
+
+function generateSecureToken(): string {
+  const prefix = "os";
+  const randomPart = randomBytes(32).toString("base64url");
+  return `${prefix}_${randomPart}`;
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export async function createApiTokenAction(
+  data: z.infer<typeof createApiTokenSchema>
+): Promise<ActionResponse<{ token: string; tokenId: string }>> {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        error: "Não autenticado",
+      };
+    }
+
+    const validated = createApiTokenSchema.parse(data);
+
+    // Generate token
+    const token = generateSecureToken();
+    const tokenHash = hashToken(token);
+    const tokenPrefix = token.substring(0, 10);
+
+    // Save to database
+    const [newToken] = await db
+      .insert(apiTokens)
+      .values({
+        userId: session.user.id,
+        name: validated.name,
+        tokenHash,
+        tokenPrefix,
+        expiresAt: null, // No expiration for now
+      })
+      .returning({ id: apiTokens.id });
+
+    revalidatePath("/ajustes");
+
+    return {
+      success: true,
+      message: "Token criado com sucesso",
+      data: {
+        token,
+        tokenId: newToken.id,
+      },
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.issues[0]?.message || "Dados inválidos",
+      };
+    }
+
+    console.error("Erro ao criar token:", error);
+    return {
+      success: false,
+      error: "Erro ao criar token. Tente novamente.",
+    };
+  }
+}
+
+export async function revokeApiTokenAction(
+  data: z.infer<typeof revokeApiTokenSchema>
+): Promise<ActionResponse> {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        error: "Não autenticado",
+      };
+    }
+
+    const validated = revokeApiTokenSchema.parse(data);
+
+    // Find token and verify ownership
+    const [existingToken] = await db
+      .select()
+      .from(apiTokens)
+      .where(
+        and(
+          eq(apiTokens.id, validated.tokenId),
+          eq(apiTokens.userId, session.user.id),
+          isNull(apiTokens.revokedAt)
+        )
+      )
+      .limit(1);
+
+    if (!existingToken) {
+      return {
+        success: false,
+        error: "Token não encontrado",
+      };
+    }
+
+    // Revoke token
+    await db
+      .update(apiTokens)
+      .set({
+        revokedAt: new Date(),
+      })
+      .where(eq(apiTokens.id, validated.tokenId));
+
+    revalidatePath("/ajustes");
+
+    return {
+      success: true,
+      message: "Token revogado com sucesso",
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.issues[0]?.message || "Dados inválidos",
+      };
+    }
+
+    console.error("Erro ao revogar token:", error);
+    return {
+      success: false,
+      error: "Erro ao revogar token. Tente novamente.",
     };
   }
 }

@@ -1,3 +1,4 @@
+import { ApiTokensForm } from "@/components/ajustes/api-tokens-form";
 import { DeleteAccountForm } from "@/components/ajustes/delete-account-form";
 import { UpdateEmailForm } from "@/components/ajustes/update-email-form";
 import { UpdateNameForm } from "@/components/ajustes/update-name-form";
@@ -7,7 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { apiTokens } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -42,11 +44,28 @@ export default async function Page() {
   // Se o providerId for "google", o usuário usa Google OAuth
   const authProvider = userAccount?.providerId || "credential";
 
+  // Buscar tokens de API do usuário
+  const userApiTokens = await db
+    .select({
+      id: apiTokens.id,
+      name: apiTokens.name,
+      tokenPrefix: apiTokens.tokenPrefix,
+      lastUsedAt: apiTokens.lastUsedAt,
+      lastUsedIp: apiTokens.lastUsedIp,
+      createdAt: apiTokens.createdAt,
+      expiresAt: apiTokens.expiresAt,
+      revokedAt: apiTokens.revokedAt,
+    })
+    .from(apiTokens)
+    .where(eq(apiTokens.userId, session.user.id))
+    .orderBy(desc(apiTokens.createdAt));
+
   return (
     <div className="w-full">
       <Tabs defaultValue="preferencias" className="w-full">
         <TabsList>
           <TabsTrigger value="preferencias">Preferências</TabsTrigger>
+          <TabsTrigger value="dispositivos">Dispositivos</TabsTrigger>
           <TabsTrigger value="nome">Alterar nome</TabsTrigger>
           <TabsTrigger value="senha">Alterar senha</TabsTrigger>
           <TabsTrigger value="email">Alterar e-mail</TabsTrigger>
@@ -70,6 +89,22 @@ export default async function Page() {
                   userPreferences?.disableMagnetlines ?? false
                 }
               />
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dispositivos" className="mt-4">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-bold mb-1">OpenSheets Companion</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Conecte o app Android OpenSheets Companion para capturar
+                  automaticamente notificações de transações financeiras e
+                  enviá-las para sua caixa de entrada.
+                </p>
+              </div>
+              <ApiTokensForm tokens={userApiTokens} />
             </div>
           </Card>
         </TabsContent>
