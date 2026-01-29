@@ -1,5 +1,3 @@
-
-
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { categorias, lancamentos, pagadores } from "@/db/schema";
 import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";

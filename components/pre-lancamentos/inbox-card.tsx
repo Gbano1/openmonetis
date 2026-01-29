@@ -24,7 +24,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils/ui";
 import type { InboxItem } from "./types";
 
 interface InboxCardProps {
@@ -41,7 +40,6 @@ export function InboxCard({
 	onViewDetails,
 }: InboxCardProps) {
 	const amount = item.parsedAmount ? parseFloat(item.parsedAmount) : null;
-	const isReceita = item.parsedTransactionType === "Receita";
 
 	// O timestamp vem do app Android em horário local mas salvo como UTC
 	// Precisamos interpretar o valor UTC como se fosse horário de Brasília
@@ -78,16 +76,7 @@ export function InboxCard({
 						</span>
 					</CardTitle>
 					{amount !== null && (
-						<MoneyValues
-							amount={isReceita ? amount : -amount}
-							showPositiveSign={isReceita}
-							className={cn(
-								"text-sm",
-								isReceita
-									? "text-green-600 dark:text-green-400"
-									: "text-foreground",
-							)}
-						/>
+						<MoneyValues amount={amount} className="text-sm" />
 					)}
 				</div>
 

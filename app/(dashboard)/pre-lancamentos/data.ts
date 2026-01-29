@@ -1,5 +1,3 @@
-
-
 import { and, desc, eq, gte } from "drizzle-orm";
 import type {
 	InboxItem,
@@ -9,8 +7,8 @@ import {
 	cartoes,
 	categorias,
 	contas,
-	preLancamentos,
 	lancamentos,
+	preLancamentos,
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import {
@@ -26,7 +24,9 @@ export async function fetchInboxItems(
 	const items = await db
 		.select()
 		.from(preLancamentos)
-		.where(and(eq(preLancamentos.userId, userId), eq(preLancamentos.status, status)))
+		.where(
+			and(eq(preLancamentos.userId, userId), eq(preLancamentos.status, status)),
+		)
 		.orderBy(desc(preLancamentos.createdAt));
 
 	return items;
@@ -39,7 +39,9 @@ export async function fetchInboxItemById(
 	const [item] = await db
 		.select()
 		.from(preLancamentos)
-		.where(and(eq(preLancamentos.id, itemId), eq(preLancamentos.userId, userId)))
+		.where(
+			and(eq(preLancamentos.id, itemId), eq(preLancamentos.userId, userId)),
+		)
 		.limit(1);
 
 	return item ?? null;
@@ -91,7 +93,10 @@ export async function fetchPendingInboxCount(userId: string): Promise<number> {
 		.select({ id: preLancamentos.id })
 		.from(preLancamentos)
 		.where(
-			and(eq(preLancamentos.userId, userId), eq(preLancamentos.status, "pending")),
+			and(
+				eq(preLancamentos.userId, userId),
+				eq(preLancamentos.status, "pending"),
+			),
 		);
 
 	return items.length;

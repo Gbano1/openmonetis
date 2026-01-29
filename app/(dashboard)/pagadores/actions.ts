@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { pagadores, compartilhamentosPagador, user } from "@/db/schema";
+import { compartilhamentosPagador, pagadores, user } from "@/db/schema";
 import { handleActionError, revalidateForEntity } from "@/lib/actions/helpers";
 import type { ActionResult } from "@/lib/actions/types";
 import { getUser } from "@/lib/auth/server";
@@ -287,7 +287,9 @@ export async function deletePagadorShareAction(
 			};
 		}
 
-		await db.delete(compartilhamentosPagador).where(eq(compartilhamentosPagador.id, data.shareId));
+		await db
+			.delete(compartilhamentosPagador)
+			.where(eq(compartilhamentosPagador.id, data.shareId));
 
 		revalidate();
 		revalidatePath(`/pagadores/${existing.pagadorId}`);

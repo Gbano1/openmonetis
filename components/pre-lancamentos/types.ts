@@ -1,5 +1,3 @@
-
-
 import type { SelectOption as LancamentoSelectOption } from "@/components/lancamentos/types";
 
 export interface InboxItem {
@@ -11,7 +9,6 @@ export interface InboxItem {
 	notificationTimestamp: Date;
 	parsedName: string | null;
 	parsedAmount: string | null;
-	parsedTransactionType: string | null;
 	status: string;
 	lancamentoId: string | null;
 	processedAt: Date | null;
@@ -25,7 +22,6 @@ export interface ProcessInboxInput {
 	name: string;
 	amount: number;
 	purchaseDate: string;
-	transactionType: "Despesa" | "Receita";
 	condition: string;
 	paymentMethod: string;
 	categoriaId: string;

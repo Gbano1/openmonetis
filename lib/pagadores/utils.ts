@@ -1,5 +1,3 @@
-
-
 import { DEFAULT_PAGADOR_AVATAR } from "./constants";
 
 /**

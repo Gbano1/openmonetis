@@ -139,9 +139,6 @@ export function InboxPage({
 		? String(Math.abs(Number(itemToProcess.parsedAmount)))
 		: null;
 
-	const defaultTransactionType =
-		itemToProcess?.parsedTransactionType === "Receita" ? "Receita" : "Despesa";
-
 	return (
 		<>
 			<div className="flex w-full flex-col gap-6">
@@ -182,7 +179,6 @@ export function InboxPage({
 				defaultPurchaseDate={defaultPurchaseDate}
 				defaultName={defaultName}
 				defaultAmount={defaultAmount}
-				defaultTransactionType={defaultTransactionType}
 				forceShowTransactionType
 				onSuccess={handleLancamentoSuccess}
 			/>

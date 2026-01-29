@@ -4,8 +4,8 @@ import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
-	categorias,
 	antecipacoesParcelas,
+	categorias,
 	lancamentos,
 	pagadores,
 } from "@/db/schema";
@@ -320,10 +320,7 @@ export async function getInstallmentAnticipationsAction(
 				eq(antecipacoesParcelas.lancamentoId, lancamentos.id),
 			)
 			.leftJoin(pagadores, eq(antecipacoesParcelas.pagadorId, pagadores.id))
-			.leftJoin(
-				categorias,
-				eq(antecipacoesParcelas.categoriaId, categorias.id),
-			)
+			.leftJoin(categorias, eq(antecipacoesParcelas.categoriaId, categorias.id))
 			.where(
 				and(
 					eq(antecipacoesParcelas.seriesId, validatedSeriesId),

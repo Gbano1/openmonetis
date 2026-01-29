@@ -85,18 +85,13 @@ export function createSidebarNavData(
 	return {
 		navMain: [
 			{
-				title: "Visão Geral",
+				title: "Gestão Financeira",
 				items: [
 					{
 						title: "Dashboard",
 						url: "/dashboard",
 						icon: RiDashboardLine,
 					},
-				],
-			},
-			{
-				title: "Gestão Financeira",
-				items: [
 					{
 						title: "Lançamentos",
 						url: "/lancamentos",
@@ -164,11 +159,6 @@ export function createSidebarNavData(
 						url: "/categorias",
 						icon: RiPriceTag3Line,
 					},
-				],
-			},
-			{
-				title: "Análise e Anotações",
-				items: [
 					{
 						title: "Anotações",
 						url: "/anotacoes",
@@ -182,23 +172,23 @@ export function createSidebarNavData(
 							},
 						],
 					},
+				],
+			},
+			{
+				title: "Análise",
+				items: [
 					{
 						title: "Insights",
 						url: "/insights",
 						icon: RiSparklingLine,
 					},
-				],
-			},
-			{
-				title: "Relatórios",
-				items: [
 					{
-						title: "Categorias",
+						title: "Tendências",
 						url: "/relatorios/categorias",
 						icon: RiFileChartLine,
 					},
 					{
-						title: "Cartões",
+						title: "Uso de Cartões",
 						url: "/relatorios/cartoes",
 						icon: RiBankCard2Line,
 					},
@@ -206,11 +196,6 @@ export function createSidebarNavData(
 			},
 		],
 		navSecondary: [
-			// {
-			//   title: "Changelog",
-			//   url: "/changelog",
-			//   icon: RiGitCommitLine,
-			// },
 			{
 				title: "Ajustes",
 				url: "/ajustes",

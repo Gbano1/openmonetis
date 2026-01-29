@@ -5,7 +5,7 @@ import { and, eq, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { tokensApi, pagadores } from "@/db/schema";
+import { pagadores, tokensApi } from "@/db/schema";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db";
 import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";

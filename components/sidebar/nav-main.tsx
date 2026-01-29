@@ -113,9 +113,11 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
 
 	return (
 		<>
-			{sections.map((section) => (
+			{sections.map((section, index) => (
 				<SidebarGroup key={section.title}>
-					<SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+					<SidebarGroupLabel className="text-xs text-muted-foreground/60">
+						{section.title}
+					</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{section.items.map((item) => {

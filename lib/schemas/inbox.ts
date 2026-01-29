@@ -1,5 +1,3 @@
-
-
 import { z } from "zod";
 
 export const inboxItemSchema = z.object({
@@ -10,7 +8,6 @@ export const inboxItemSchema = z.object({
 	notificationTimestamp: z.string().transform((val) => new Date(val)),
 	parsedName: z.string().optional(),
 	parsedAmount: z.coerce.number().optional(),
-	parsedTransactionType: z.enum(["Despesa", "Receita"]).optional(),
 	clientId: z.string().optional(), // ID local do app para rastreamento
 });
 

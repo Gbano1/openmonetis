@@ -1,5 +1,3 @@
-
-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";

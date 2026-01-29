@@ -1,6 +1,6 @@
 {
-	"id": "8a210878-9ebe-4f45-8aec-a3928e41bf26",
-	"prevId": "f072fd39-3525-4d1f-a396-57aff100b211",
+	"id": "4ae67d34-81ae-418b-ac5b-e53b57753da1",
+	"prevId": "8a210878-9ebe-4f45-8aec-a3928e41bf26",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -1629,12 +1629,6 @@
 				"parsed_amount": {
 					"name": "parsed_amount",
 					"type": "numeric(12, 2)",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"parsed_transaction_type": {
-					"name": "parsed_transaction_type",
-					"type": "text",
 					"primaryKey": false,
 					"notNull": false
 				},

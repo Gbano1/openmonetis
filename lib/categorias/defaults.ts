@@ -1,5 +1,3 @@
-
-
 import { eq } from "drizzle-orm";
 import { categorias } from "@/db/schema";
 import type { CategoryType } from "@/lib/categorias/constants";

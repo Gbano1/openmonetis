@@ -451,7 +451,6 @@ export const preLancamentos = pgTable(
 		// Dados parseados (editáveis pelo usuário antes de processar)
 		parsedName: text("parsed_name"), // Nome do estabelecimento
 		parsedAmount: numeric("parsed_amount", { precision: 12, scale: 2 }),
-		parsedTransactionType: text("parsed_transaction_type"), // Despesa, Receita
 
 		// Status de processamento
 		status: text("status").notNull().default("pending"), // pending, processed, discarded
@@ -527,7 +526,9 @@ export const antecipacoesParcelas = pgTable(
 			.defaultNow(),
 	},
 	(table) => ({
-		seriesIdIdx: index("antecipacoes_parcelas_series_id_idx").on(table.seriesId),
+		seriesIdIdx: index("antecipacoes_parcelas_series_id_idx").on(
+			table.seriesId,
+		),
 		userIdIdx: index("antecipacoes_parcelas_user_id_idx").on(table.userId),
 	}),
 );

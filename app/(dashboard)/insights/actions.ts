@@ -11,10 +11,10 @@ import {
 	cartoes,
 	categorias,
 	contas,
+	insightsSalvos,
 	lancamentos,
 	orcamentos,
 	pagadores,
-	insightsSalvos,
 } from "@/db/schema";
 import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
 import { getUser } from "@/lib/auth/server";
@@ -752,7 +752,10 @@ export async function saveInsightsAction(
 				modelId,
 				data: JSON.stringify(data),
 			})
-			.returning({ id: insightsSalvos.id, createdAt: insightsSalvos.createdAt });
+			.returning({
+				id: insightsSalvos.id,
+				createdAt: insightsSalvos.createdAt,
+			});
 
 		const insertedRecord = result[0];
 		if (!insertedRecord) {

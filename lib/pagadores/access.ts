@@ -1,5 +1,9 @@
 import { and, eq } from "drizzle-orm";
-import { pagadores, compartilhamentosPagador, user as usersTable } from "@/db/schema";
+import {
+	compartilhamentosPagador,
+	pagadores,
+	user as usersTable,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 
 export type PagadorWithAccess = typeof pagadores.$inferSelect & {
@@ -24,7 +28,10 @@ export async function fetchPagadoresWithAccess(
 				ownerEmail: usersTable.email,
 			})
 			.from(compartilhamentosPagador)
-			.innerJoin(pagadores, eq(compartilhamentosPagador.pagadorId, pagadores.id))
+			.innerJoin(
+				pagadores,
+				eq(compartilhamentosPagador.pagadorId, pagadores.id),
+			)
 			.leftJoin(usersTable, eq(pagadores.userId, usersTable.id))
 			.where(eq(compartilhamentosPagador.sharedWithUserId, userId)),
 	]);

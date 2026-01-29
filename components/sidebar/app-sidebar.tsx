@@ -53,7 +53,7 @@ export function AppSidebar({
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							className="data-[slot=sidebar-menu-button]:px-1.5! hover:bg-transparent active:bg-transparent  pt-4 justify-center hover:scale-105 transition-all duration-200"
+							className="data-[slot=sidebar-menu-button]:px-1.5! hover:bg-transparent active:bg-transparent pt-4 justify-center hover:scale-105 transition-all duration-200"
 						>
 							<a href="/dashboard">
 								<LogoContent />

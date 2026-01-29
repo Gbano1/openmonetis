@@ -3,7 +3,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import MoneyValues from "@/components/money-values";
-import { TypeBadge } from "@/components/type-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +14,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils/ui";
 import type { InboxItem } from "./types";
 
 interface InboxDetailsDialogProps {
@@ -32,7 +30,6 @@ export function InboxDetailsDialog({
 	if (!item) return null;
 
 	const amount = item.parsedAmount ? parseFloat(item.parsedAmount) : null;
-	const isReceita = item.parsedTransactionType === "Receita";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,28 +83,9 @@ export function InboxDetailsDialog({
 							<div className="flex justify-between items-center">
 								<span className="text-muted-foreground">Valor</span>
 								{amount !== null ? (
-									<MoneyValues
-										amount={isReceita ? amount : -amount}
-										showPositiveSign={isReceita}
-										className={cn(
-											"text-sm",
-											isReceita
-												? "text-green-600 dark:text-green-400"
-												: "text-foreground",
-										)}
-									/>
+									<MoneyValues amount={amount} className="text-sm" />
 								) : (
 									<span className="text-muted-foreground">Não extraído</span>
-								)}
-							</div>
-							<div className="flex justify-between items-center">
-								<span className="text-muted-foreground">Tipo</span>
-								{item.parsedTransactionType ? (
-									<TypeBadge type={item.parsedTransactionType} />
-								) : (
-									<span className="text-muted-foreground">
-										Não identificado
-									</span>
 								)}
 							</div>
 						</div>

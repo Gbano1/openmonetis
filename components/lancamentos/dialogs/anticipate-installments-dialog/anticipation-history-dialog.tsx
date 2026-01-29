@@ -1,7 +1,7 @@
 "use client";
 
 import { RiCalendarCheckLine, RiLoader4Line } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getInstallmentAnticipationsAction } from "@/app/(dashboard)/lancamentos/anticipation-actions";
 import {
@@ -52,14 +52,8 @@ export function AnticipationHistoryDialog({
 		onOpenChange,
 	);
 
-	// Buscar antecipações ao abrir o dialog
-	useEffect(() => {
-		if (dialogOpen) {
-			loadAnticipations();
-		}
-	}, [dialogOpen, loadAnticipations]);
-
-	const loadAnticipations = async () => {
+	// Define loadAnticipations before it's used in useEffect
+	const loadAnticipations = useCallback(async () => {
 		setIsLoading(true);
 
 		try {
@@ -80,7 +74,14 @@ export function AnticipationHistoryDialog({
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [seriesId]);
+
+	// Buscar antecipações ao abrir o dialog
+	useEffect(() => {
+		if (dialogOpen) {
+			loadAnticipations();
+		}
+	}, [dialogOpen, loadAnticipations]);
 
 	const handleCanceled = () => {
 		// Recarregar lista após cancelamento

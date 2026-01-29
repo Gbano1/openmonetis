@@ -2,10 +2,10 @@ import { and, desc, eq, type SQL } from "drizzle-orm";
 import {
 	cartoes,
 	categorias,
+	compartilhamentosPagador,
 	contas,
 	lancamentos,
 	pagadores,
-	compartilhamentosPagador,
 	user as usersTable,
 } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -30,7 +30,10 @@ export async function fetchPagadorShares(
 			userEmail: usersTable.email,
 		})
 		.from(compartilhamentosPagador)
-		.innerJoin(usersTable, eq(compartilhamentosPagador.sharedWithUserId, usersTable.id))
+		.innerJoin(
+			usersTable,
+			eq(compartilhamentosPagador.sharedWithUserId, usersTable.id),
+		)
 		.where(eq(compartilhamentosPagador.pagadorId, pagadorId));
 
 	return shareRows.map((share) => ({

@@ -1,9 +1,7 @@
-
-
 import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { tokensApi, preLancamentos } from "@/db/schema";
+import { preLancamentos, tokensApi } from "@/db/schema";
 import { extractBearerToken, hashToken } from "@/lib/auth/api-token";
 import { db } from "@/lib/db";
 import { inboxItemSchema } from "@/lib/schemas/inbox";
@@ -92,7 +90,6 @@ export async function POST(request: Request) {
 				notificationTimestamp: data.notificationTimestamp,
 				parsedName: data.parsedName,
 				parsedAmount: data.parsedAmount?.toString(),
-				parsedTransactionType: data.parsedTransactionType,
 				status: "pending",
 			})
 			.returning({ id: preLancamentos.id });

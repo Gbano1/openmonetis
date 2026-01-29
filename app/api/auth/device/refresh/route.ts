@@ -1,5 +1,3 @@
-
-
 import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { tokensApi } from "@/db/schema";

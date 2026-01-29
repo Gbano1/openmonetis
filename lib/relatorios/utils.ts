@@ -1,5 +1,3 @@
-
-
 import { currencyFormatter } from "@/lib/lancamentos/formatting-helpers";
 import { calculatePercentageChange } from "@/lib/utils/math";
 import { buildPeriodRange, MONTH_NAMES, parsePeriod } from "@/lib/utils/period";

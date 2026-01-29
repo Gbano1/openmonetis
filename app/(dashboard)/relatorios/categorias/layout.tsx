@@ -2,7 +2,7 @@ import { RiFileChartLine } from "@remixicon/react";
 import PageDescription from "@/components/page-description";
 
 export const metadata = {
-	title: "Relatórios | Opensheets",
+	title: "Tendências | Opensheets",
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
 		<section className="space-y-6 px-6">
 			<PageDescription
 				icon={<RiFileChartLine />}
-				title="Relatórios de Categorias"
+				title="Tendências"
 				subtitle="Acompanhe a evolução dos seus gastos e receitas por categoria ao longo do tempo."
 			/>
 			{children}
