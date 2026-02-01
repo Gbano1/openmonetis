@@ -11,13 +11,13 @@ interface ReturnButtonProps {
 const ReturnButton = React.memo(({ disabled, onClick }: ReturnButtonProps) => {
 	return (
 		<Button
-			className="w-28 h-6 rounded-sm"
+			className="w-32 h-6 rounded-sm lowercase"
 			size="sm"
 			disabled={disabled}
 			onClick={onClick}
 			aria-label="Retornar para o mês atual"
 		>
-			Mês Atual
+			Ir para Mês Atual
 		</Button>
 	);
 });

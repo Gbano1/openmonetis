@@ -53,7 +53,7 @@ export function AppSidebar({
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							className="data-[slot=sidebar-menu-button]:px-1.5! hover:bg-transparent active:bg-transparent pt-4 justify-center hover:scale-105 transition-all duration-200"
+							className="data-[slot=sidebar-menu-button]:px-1.5! hover:bg-transparent active:bg-transparent pt-8 py-6 justify-center hover:scale-120 scale-110 transition-all duration-200"
 						>
 							<a href="/dashboard">
 								<LogoContent />
@@ -77,5 +77,10 @@ function LogoContent() {
 	const { state } = useSidebar();
 	const isCollapsed = state === "collapsed";
 
-	return <Logo variant={isCollapsed ? "small" : "full"} />;
+	return (
+		<Logo
+			variant={isCollapsed ? "small" : "full"}
+			showVersion={!isCollapsed}
+		/>
+	);
 }

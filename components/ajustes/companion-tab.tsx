@@ -1,8 +1,10 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
 	RiAndroidLine,
 	RiDownload2Line,
+	RiExternalLinkLine,
 	RiNotification3Line,
 	RiQrCodeLine,
 	RiShieldCheckLine,
@@ -25,11 +27,28 @@ interface CompanionTabProps {
 	tokens: ApiToken[];
 }
 
-const steps = [
+const steps: {
+	icon: typeof RiDownload2Line;
+	title: string;
+	description: ReactNode;
+}[] = [
 	{
 		icon: RiDownload2Line,
 		title: "Instale o app",
-		description: "Instale o APK.",
+		description: (
+			<>
+				Baixe o APK no{" "}
+				<a
+					href="https://github.com/felipegcoutinho/opensheets-companion"
+					target="_blank"
+					rel="noopener noreferrer"
+					className="inline-flex items-center gap-0.5 text-primary hover:underline"
+				>
+					GitHub
+					<RiExternalLinkLine className="h-3 w-3" />
+				</a>
+			</>
+		),
 	},
 	{
 		icon: RiQrCodeLine,

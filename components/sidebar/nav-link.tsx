@@ -13,7 +13,7 @@ import {
 	RiInboxLine,
 	RiNoCreditCardLine,
 	RiPriceTag3Line,
-	RiSettingsLine,
+	RiSettings2Line,
 	RiSparklingLine,
 	RiTodoLine,
 } from "@remixicon/react";
@@ -199,7 +199,7 @@ export function createSidebarNavData(
 			{
 				title: "Ajustes",
 				url: "/ajustes",
-				icon: RiSettingsLine,
+				icon: RiSettings2Line,
 			},
 		],
 	};

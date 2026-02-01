@@ -1,12 +1,18 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils/ui";
+import { version } from "@/package.json";
 
 interface LogoProps {
 	variant?: "full" | "small";
 	className?: string;
+	showVersion?: boolean;
 }
 
-export function Logo({ variant = "full", className }: LogoProps) {
+export function Logo({
+	variant = "full",
+	className,
+	showVersion = false,
+}: LogoProps) {
 	if (variant === "small") {
 		return (
 			<Image
@@ -21,7 +27,7 @@ export function Logo({ variant = "full", className }: LogoProps) {
 	}
 
 	return (
-		<div className={cn("flex items-center py-4", className)}>
+		<div className={cn("flex items-center gap-1.5 py-4", className)}>
 			<Image
 				src="/logo_small.png"
 				alt="Opensheets"
@@ -38,6 +44,11 @@ export function Logo({ variant = "full", className }: LogoProps) {
 				className="object-contain dark:invert"
 				priority
 			/>
+			{showVersion && (
+				<span className="text-[10px] font-medium text-muted-foreground">
+					v{version}
+				</span>
+			)}
 		</div>
 	);
 }

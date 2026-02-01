@@ -12,6 +12,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=flat-square&logo=docker)](https://www.docker.com/)
+[![Android Companion](https://img.shields.io/badge/Companion-Android-3DDC84?style=flat-square&logo=android)](https://github.com/felipegcoutinho/opensheets-companion)
 [![License](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-orange?style=flat-square&logo=creative-commons)](LICENSE)
 [![Sponsor](https://img.shields.io/badge/Sponsor-❤️-ea4aaa?style=flat-square&logo=github-sponsors)](https://github.com/sponsors/felipegcoutinho)
 
@@ -37,6 +38,7 @@
 - [Configuração de Variáveis de Ambiente](#-configuração-de-variáveis-de-ambiente)
 - [Banco de Dados](#-banco-de-dados)
 - [Arquitetura](#-arquitetura)
+- [Destaques e Funcionalidades Recentes](#-destaques-e-funcionalidades-recentes)
 - [Contribuindo](#-contribuindo)
 - [Apoie o Projeto](#-apoie-o-projeto)
 
@@ -51,13 +53,14 @@ A ideia é simples: ter um lugar onde consigo ver todas as minhas contas, cartõ
 ### 📊 Estatísticas do Projeto
 
 - **~200 componentes React** organizados por feature
-- **15+ tabelas de banco de dados** com relações complexas
+- **17+ tabelas de banco de dados** com relações complexas
 - **20+ widgets** no dashboard principal
 - **18+ queries paralelas** otimizadas para performance
-- **736 linhas** de schema Drizzle ORM
+- **~820 linhas** de schema Drizzle ORM
 - **Docker multi-stage** com imagem final de ~200MB
 - **100% TypeScript** com strict mode
 - **Self-hosted** - seus dados, seu controle
+- **App Companion Android** - captura automática de notificações bancárias
 
 > 💡 **Licença Não-Comercial:** Este projeto é gratuito para uso pessoal, mas não pode ser usado comercialmente. Veja mais detalhes na seção [Licença](#-licença).
 
@@ -71,7 +74,14 @@ Este projeto é self-hosted. Você precisa rodar no seu próprio computador ou s
 
 Você precisa registrar manualmente suas transações. Se você procura algo que sincroniza automaticamente com seu banco, este projeto não é pra você.
 
-**3. Requer disciplina**
+**3. 🤖 OpenSheets Companion (Android)**
+
+Existe um app Android complementar que captura notificações de transações dos seus apps de banco (Nubank, Itaú, Bradesco, Inter, C6 e outros) e envia automaticamente para sua caixa de entrada no OpenSheets. As notificações ficam como "pré-lançamentos" para você revisar e aprovar.
+
+- **Repositório:** [github.com/felipegcoutinho/opensheets-companion](https://github.com/felipegcoutinho/opensheets-companion)
+- **Configuração:** Ajustes → OpenSheets Companion → Gere um token de API
+
+**4. Requer disciplina**
 
 O Opensheets funciona melhor para quem:
 
@@ -147,6 +157,21 @@ Se você não se importa em dedicar alguns minutos por dia (ou semana) para mant
 - Navegação intuitiva por data
 - Filtros e organização temporal
 
+📲 **OpenSheets Companion (Android)**
+
+- App Android que captura notificações bancárias
+- Suporte a Nubank, Itaú, Bradesco, Inter, C6 e outros
+- Pré-lançamentos para revisão antes de aprovar
+- Autenticação via tokens de API seguros
+- Sincronização automática em segundo plano
+
+📊 **Relatórios avançados**
+
+- Tendências de categorias ao longo do tempo
+- Análise de uso de cartões de crédito
+- Top estabelecimentos mais frequentes
+- Filtros por período personalizáveis
+
 ⚙️ **Preferências e personalização**
 
 - Tema claro/escuro
@@ -175,12 +200,13 @@ O projeto é open source, seus dados ficam no seu controle (pode rodar localment
 
 ### 🔐 Autenticação
 
-- Better Auth 1.4.10 integrado
+- Better Auth 1.4.18 integrado
 - OAuth (Google)
 - Autenticação por email/senha
 - Session management com tokens
 - Protected routes via middleware
 - Verificação de email
+- Tokens de API para integrações externas
 
 ### 🗄️ Banco de Dados
 
@@ -238,10 +264,20 @@ O projeto é open source, seus dados ficam no seu controle (pode rodar localment
 - shadcn/ui components (Radix UI)
 - Tailwind CSS v4
 - Dark mode com next-themes
-- Animações fluidas com Motion
+- Drag-and-drop com dnd-kit
 - Responsive design
 - Modo privacidade (oculta valores)
 - Componentes acessíveis (ARIA)
+
+### 📲 OpenSheets Companion
+
+- App Android para captura de notificações bancárias
+- Suporte a múltiplos bancos (Nubank, Itaú, Bradesco, Inter, C6, etc.)
+- Caixa de entrada (pré-lançamentos) para revisão
+- Tokens de API com hash SHA-256 (nunca armazenados em texto)
+- Rate limiting (100 requests/min por usuário)
+- API batch para envio de múltiplas notificações
+- Endpoint de health check para validação
 
 ### 📝 Produtividade
 
@@ -263,11 +299,11 @@ O projeto é open source, seus dados ficam no seu controle (pode rodar localment
 
 ### 🧪 Desenvolvimento
 
-- Next.js 16.1 com App Router
+- Next.js 16.1.6 com App Router
 - Turbopack (fast refresh)
-- TypeScript 5.9 (strict mode)
-- Biome (linting + formatting)
-- React 19.2 (com Compiler)
+- TypeScript 5.9.3 (strict mode)
+- Biome 2.x (linting + formatting + import organization)
+- React 19.2.4 (com Compiler)
 - Server Actions
 - Parallel data fetching
 - Streaming SSR
@@ -278,16 +314,16 @@ O projeto é open source, seus dados ficam no seu controle (pode rodar localment
 
 ### Frontend
 
-- **Framework:** Next.js 16.1.1 (App Router)
+- **Framework:** Next.js 16.1.6 (App Router)
 - **Linguagem:** TypeScript 5.9.3
-- **UI Library:** React 19.2.3
+- **UI Library:** React 19.2.4
 - **Styling:** Tailwind CSS 4.1.18
 - **Components:** shadcn/ui (Radix UI)
-- **Icons:** Remixicon 4.8.0
-- **Animations:** Motion 12.23.26
+- **Icons:** Remixicon 4.9.0
+- **Drag & Drop:** dnd-kit
 - **Tables:** TanStack React Table 8.21.3
-- **Charts:** Recharts 3.6.0
-- **Forms:** React Hook Form + Zod 4.3.4
+- **Charts:** Recharts 3.7.0
+- **Validation:** Zod 4.3.6
 - **Theme:** next-themes 0.4.6
 
 ### Backend
@@ -295,18 +331,18 @@ O projeto é open source, seus dados ficam no seu controle (pode rodar localment
 - **Runtime:** Node.js 22
 - **Database:** PostgreSQL 18
 - **ORM:** Drizzle ORM 0.45.1
-- **Database Driver:** pg 8.16.3
-- **Auth:** Better Auth 1.4.10
-- **Email:** Resend 6.6.0
-- **Validation:** Zod 4.3.4
+- **Database Driver:** pg 8.18.0
+- **Auth:** Better Auth 1.4.18
+- **Email:** Resend 6.9.1
+- **Validation:** Zod 4.3.6
 
 ### AI Integration (Opcional)
 
-- **AI SDK:** Vercel AI SDK 6.0.6
-- **Anthropic:** Claude (via @ai-sdk/anthropic 3.0.2)
-- **OpenAI:** GPT (via @ai-sdk/openai 3.0.2)
-- **Google:** Gemini (via @ai-sdk/google 3.0.2)
-- **OpenRouter:** via @openrouter/ai-sdk-provider 1.5.4
+- **AI SDK:** Vercel AI SDK 6.0.67
+- **Anthropic:** Claude (via @ai-sdk/anthropic 3.0.35)
+- **OpenAI:** GPT (via @ai-sdk/openai 3.0.25)
+- **Google:** Gemini (via @ai-sdk/google 3.0.20)
+- **OpenRouter:** via @openrouter/ai-sdk-provider 2.1.1
 
 ### Utilities
 
@@ -322,7 +358,8 @@ O projeto é open source, seus dados ficam no seu controle (pode rodar localment
 - **Containerization:** Docker + Docker Compose
 - **Package Manager:** pnpm
 - **Build Tool:** Turbopack
-- **Linting & Formatting:** Biome 2.x
+- **Linting & Formatting:** Biome 2.3.13
+- **Database Tools:** Drizzle Kit 0.31.8
 - **Analytics:** Vercel Analytics + Speed Insights
 
 ---
@@ -869,7 +906,10 @@ opensheets/
 ├── app/                           # Next.js App Router
 │   ├── api/                       # API Routes
 │   │   ├── auth/[...all]/        # Better Auth endpoints
-│   │   └── health/               # Health check endpoint
+│   │   ├── health/               # Health check (Companion validation)
+│   │   └── inbox/                # API para Companion App
+│   │       ├── route.ts          # POST - Enviar notificação única
+│   │       └── batch/route.ts    # POST - Enviar múltiplas notificações
 │   ├── (auth)/                   # Rotas públicas de autenticação
 │   │   ├── login/                # Página de login
 │   │   └── signup/               # Página de cadastro
@@ -877,6 +917,7 @@ opensheets/
 │   │   ├── dashboard/            # Dashboard principal
 │   │   │   └── analise-parcelas/ # Análise de parcelas
 │   │   ├── lancamentos/          # Lançamentos/transações
+│   │   ├── pre-lancamentos/      # Caixa de entrada (Companion)
 │   │   ├── contas/               # Contas bancárias
 │   │   │   └── [contaId]/extrato # Extrato da conta
 │   │   ├── cartoes/              # Cartões de crédito
@@ -891,7 +932,9 @@ opensheets/
 │   │   │   └── arquivadas/       # Anotações arquivadas
 │   │   ├── insights/             # Insights de IA
 │   │   ├── relatorios/           # Relatórios
-│   │   │   └── categorias/       # Relatório de categorias
+│   │   │   ├── tendencias/       # Tendências de categorias
+│   │   │   └── uso-cartoes/      # Análise de cartões
+│   │   ├── top-estabelecimentos/ # Top estabelecimentos
 │   │   ├── calendario/           # Visão de calendário
 │   │   ├── changelog/            # Histórico de mudanças
 │   │   └── ajustes/              # Configurações
@@ -923,8 +966,11 @@ opensheets/
 │   ├── anotacoes/                # Componentes de anotações
 │   ├── insights/                 # Componentes de insights IA
 │   ├── relatorios/               # Componentes de relatórios
+│   ├── pre-lancamentos/          # Componentes da caixa de entrada
+│   ├── top-estabelecimentos/     # Top estabelecimentos
 │   ├── calendario/               # Componentes de calendário
 │   ├── calculadora/              # Calculadora integrada
+│   ├── ajustes/                  # Configurações e Companion
 │   ├── sidebar/                  # Sidebar de navegação
 │   ├── skeletons/                # Estados de loading
 │   └── month-picker/             # Seletor de mês/período
@@ -1003,7 +1049,8 @@ opensheets/
 
 | Diretório          | Descrição                                   | Arquivos |
 | ------------------ | ------------------------------------------- | -------- |
-| `app/(dashboard)/` | Páginas protegidas da aplicação             | ~50      |
+| `app/(dashboard)/` | Páginas protegidas da aplicação             | ~60      |
+| `app/api/`         | Endpoints da API (auth, inbox, health)      | ~5       |
 | `components/`      | Componentes React reutilizáveis             | ~200     |
 | `lib/`             | Lógica de negócio, helpers e utilitários    | ~80      |
 | `db/`              | Schema do banco de dados                    | 1        |
@@ -1013,106 +1060,124 @@ opensheets/
 
 ### Estrutura do Banco de Dados
 
-O OpenSheets possui um schema robusto com 15+ tabelas e relações complexas:
+O OpenSheets possui um schema robusto com 17+ tabelas e relações complexas:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    TABELAS PRINCIPAIS                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  user                      user_preferences                      │
+│  user                      preferenciasUsuario                   │
 │  ├── id                   ├── id                                │
-│  ├── name                 ├── user_id → user.id                 │
-│  ├── email                ├── disable_magnetlines                │
-│  └── ...                  └── ...                                │
+│  ├── name                 ├── userId → user.id                  │
+│  ├── email                ├── disableMagnetlines                │
+│  └── ...                  ├── dashboardWidgets (JSON)           │
+│                           └── ...                                │
 │                                                                  │
 │  contas                    cartoes                              │
 │  ├── id                   ├── id                                │
-│  ├── user_id → user.id    ├── user_id → user.id                 │
-│  ├── nome                 ├── conta_id → contas.id              │
-│  ├── tipo_conta           ├── nome                              │
-│  ├── saldo_inicial        ├── bandeira                          │
-│  └── ...                  ├── dt_fechamento                     │
-│                           ├── dt_vencimento                      │
+│  ├── userId → user.id     ├── userId → user.id                  │
+│  ├── nome                 ├── contaId → contas.id               │
+│  ├── tipoConta            ├── nome                              │
+│  ├── saldoInicial         ├── bandeira                          │
+│  └── ...                  ├── dtFechamento                      │
+│                           ├── dtVencimento                       │
 │                           └── ...                                │
 │                                                                  │
 │  categorias                pagadores                            │
 │  ├── id                   ├── id                                │
-│  ├── user_id → user.id    ├── user_id → user.id                 │
+│  ├── userId → user.id     ├── userId → user.id                  │
 │  ├── nome                 ├── nome                              │
 │  ├── tipo                 ├── email                             │
-│  ├── icone                ├── share_code (único)                │
-│  └── ...                  ├── role                              │
+│  ├── icone                ├── shareCode (único)                 │
+│  └── ...                  ├── isAutoSend                        │
 │                           └── ...                                │
 │                                                                  │
-│  pagador_shares                                                 │
+│  compartilhamentosPagador                                       │
 │  ├── id                                                         │
-│  ├── pagador_id → pagadores.id                                  │
-│  ├── shared_with_user_id → user.id                             │
-│  ├── created_by_user_id → user.id                              │
+│  ├── pagadorId → pagadores.id                                   │
+│  ├── sharedWithUserId → user.id                                │
+│  ├── createdByUserId → user.id                                 │
 │  ├── permission (read/write)                                    │
 │  └── ...                                                         │
 │                                                                  │
 │  lancamentos (TABELA PRINCIPAL)                                │
 │  ├── id                                                         │
-│  ├── user_id → user.id                                          │
-│  ├── conta_id → contas.id                                       │
-│  ├── cartao_id → cartoes.id                                     │
-│  ├── categoria_id → categorias.id                              │
-│  ├── pagador_id → pagadores.id                                  │
+│  ├── userId → user.id                                           │
+│  ├── contaId → contas.id                                        │
+│  ├── cartaoId → cartoes.id                                      │
+│  ├── categoriaId → categorias.id                               │
+│  ├── pagadorId → pagadores.id                                   │
 │  ├── nome                                                        │
 │  ├── valor                                                       │
-│  ├── tipo_transacao (receita/despesa/transferencia)            │
-│  ├── forma_pagamento                                            │
+│  ├── tipoTransacao (receita/despesa/transferencia)             │
+│  ├── formaPagamento                                             │
 │  ├── condicao (aberto/realizado/cancelado)                     │
-│  ├── data_compra                                                │
+│  ├── dataCompra                                                 │
 │  ├── periodo (YYYY-MM)                                          │
-│  ├── qtde_parcela                                               │
-│  ├── parcela_atual                                              │
-│  ├── series_id (agrupa parcelas)                               │
-│  ├── transfer_id (agrupa transferências)                       │
+│  ├── qtdeParcela                                                │
+│  ├── parcelaAtual                                               │
+│  ├── seriesId (agrupa parcelas)                                │
+│  ├── transferId (agrupa transferências)                        │
 │  ├── antecipado (boolean)                                       │
-│  ├── antecipacao_id → installment_anticipations.id            │
+│  ├── antecipacaoId → antecipacoesParcelas.id                  │
 │  └── ...                                                         │
 │                                                                  │
-│  installment_anticipations                                      │
+│  antecipacoesParcelas                                          │
 │  ├── id                                                         │
-│  ├── user_id → user.id                                          │
-│  ├── series_id                                                  │
-│  ├── lancamento_id → lancamentos.id                            │
-│  ├── periodo_antecipacao                                        │
-│  ├── parcelas_antecipadas (JSONB array)                        │
-│  ├── valor_total                                                │
+│  ├── userId → user.id                                           │
+│  ├── seriesId                                                   │
+│  ├── lancamentoId → lancamentos.id                             │
+│  ├── periodoAntecipacao                                         │
+│  ├── parcelasAntecipadas (JSONB array)                         │
+│  ├── valorTotal                                                 │
 │  ├── desconto                                                   │
 │  └── ...                                                         │
 │                                                                  │
 │  faturas                   orcamentos                           │
 │  ├── id                   ├── id                                │
-│  ├── user_id → user.id    ├── user_id → user.id                 │
-│  ├── cartao_id → cartoes  ├── categoria_id → categorias.id      │
+│  ├── userId → user.id     ├── userId → user.id                  │
+│  ├── cartaoId → cartoes   ├── categoriaId → categorias.id       │
 │  ├── periodo              ├── valor                             │
-│  ├── status_pagamento     ├── periodo                           │
+│  ├── statusPagamento      ├── periodo                           │
 │  └── ...                  └── ...                                │
 │                                                                  │
-│  anotacoes                 saved_insights                       │
+│  anotacoes                 insightsSalvos                       │
 │  ├── id                   ├── id                                │
-│  ├── user_id → user.id    ├── user_id → user.id                 │
+│  ├── userId → user.id     ├── userId → user.id                  │
 │  ├── titulo               ├── period                            │
-│  ├── descricao            ├── model_id                          │
+│  ├── descricao            ├── modelId                           │
 │  ├── tipo (nota/tarefa)   ├── data (JSON)                       │
-│  ├── tasks (JSON)         ├── created_at                        │
-│  ├── arquivada            └── updated_at                        │
+│  ├── tasks (JSON)         └── createdAt                         │
+│  ├── arquivada                                                  │
 │  └── ...                                                         │
+│                                                                  │
+│  ══════════════════ COMPANION APP ══════════════════           │
+│                                                                  │
+│  tokensApi                 preLancamentos                       │
+│  ├── id                   ├── id                                │
+│  ├── userId → user.id     ├── userId → user.id                  │
+│  ├── name                 ├── sourceApp                         │
+│  ├── tokenHash (SHA-256)  ├── sourceAppName                     │
+│  ├── tokenPrefix          ├── originalTitle                     │
+│  ├── lastUsedAt           ├── originalText                      │
+│  ├── lastUsedIp           ├── parsedName                        │
+│  ├── expiresAt            ├── parsedAmount                      │
+│  ├── revokedAt            ├── status (pending/processed)        │
+│  └── createdAt            ├── lancamentoId → lancamentos.id     │
+│                           └── ...                                │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 
 ÍNDICES OTIMIZADOS:
-• user_id + period (queries do dashboard)
-• user_id + purchase_date (ordenação por data)
-• series_id (agrupamento de parcelas)
-• cartao_id + period (faturas)
-• user_id + condition (filtros de condição)
-• share_code (compartilhamento)
+• userId + periodo (queries do dashboard)
+• userId + dataCompra (ordenação por data)
+• seriesId (agrupamento de parcelas)
+• cartaoId + periodo (faturas)
+• userId + condicao (filtros de condição)
+• shareCode (compartilhamento)
+• tokenHash (autenticação API)
+• userId + status (inbox filtering)
 ```
 
 ### Fluxo de Autenticação
@@ -1181,6 +1246,20 @@ O OpenSheets possui um schema robusto com 15+ tabelas e relações complexas:
 
 O OpenSheets está em desenvolvimento ativo. Aqui estão algumas das funcionalidades mais interessantes já implementadas:
 
+### 📲 OpenSheets Companion
+
+Integração completa com app Android para captura automática de notificações bancárias:
+
+- **Captura automática:** Nubank, Itaú, Bradesco, Inter, C6 e outros bancos
+- **Caixa de entrada:** Notificações chegam como pré-lançamentos para revisão
+- **Edição inline:** Ajuste valores e descrições antes de aprovar
+- **Tokens seguros:** Autenticação via tokens com hash SHA-256
+- **Rate limiting:** Proteção contra abuso (100 req/min)
+- **API batch:** Envio de múltiplas notificações de uma vez
+- **Health check:** Endpoint para validação de conectividade
+
+O app Companion está disponível em: [github.com/felipegcoutinho/opensheets-companion](https://github.com/felipegcoutinho/opensheets-companion)
+
 ### 💸 Sistema Avançado de Parcelamentos
 
 O controle de parcelamentos vai além do básico:
@@ -1215,7 +1294,10 @@ Analytics poderosos para entender suas finanças:
 
 - **Dashboard interativo:** 20+ widgets com diferentes visualizações
 - **Relatórios de categorias:** Análise profunda por categoria com histórico
-- **Comparativos mensais:** Veja a evolução dos seus gastos ao longo do tempo
+- **Tendências:** Visualize a evolução de categorias ao longo de 3, 6 ou 12 meses
+- **Uso de cartões:** Análise detalhada de gastos por cartão de crédito
+- **Top estabelecimentos:** Veja onde você mais gasta
+- **Comparativos mensais:** Evolução dos seus gastos ao longo do tempo
 - **Exportações:** PDF e Excel para análise externa
 - **Gráficos interativos:** Recharts com dados em tempo real
 
@@ -1258,6 +1340,7 @@ Feito por desenvolvedores, para desenvolvedores:
 - **Migrations automáticas:** Schema sync simplificado
 - **Docker completo:** Ambiente reproduzível em qualquer lugar
 - **Scripts facilitados:** Comandos npm para tudo
+- **Biome:** Linting e formatting unificados em uma ferramenta
 
 ---
 
@@ -1356,6 +1439,7 @@ Para o texto legal completo, consulte o arquivo [LICENSE](LICENSE) ou visite [cr
 - [Better Auth](https://better-auth.com/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [shadcn/ui](https://ui.shadcn.com/)
+- [Biome](https://biomejs.dev/)
 - [Vercel](https://vercel.com/)
 
 ---
