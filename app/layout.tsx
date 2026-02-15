@@ -3,7 +3,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { main_font } from "@/public/fonts/font_index";
+import { allFontVariables } from "@/public/fonts/font_index";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,14 +17,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="en" className={allFontVariables} suppressHydrationWarning>
 			<head>
 				<meta name="apple-mobile-web-app-title" content="Opensheets" />
 			</head>
-			<body
-				className={`${main_font.className} antialiased `}
-				suppressHydrationWarning
-			>
+			<body className="antialiased" suppressHydrationWarning>
 				<ThemeProvider attribute="class" defaultTheme="light">
 					{children}
 					<Toaster position="top-right" />

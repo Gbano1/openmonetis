@@ -4,6 +4,8 @@ import { db, schema } from "@/lib/db";
 
 export interface UserPreferences {
 	disableMagnetlines: boolean;
+	systemFont: string;
+	moneyFont: string;
 }
 
 export interface ApiToken {
@@ -30,6 +32,8 @@ export async function fetchUserPreferences(
 	const result = await db
 		.select({
 			disableMagnetlines: schema.preferenciasUsuario.disableMagnetlines,
+			systemFont: schema.preferenciasUsuario.systemFont,
+			moneyFont: schema.preferenciasUsuario.moneyFont,
 		})
 		.from(schema.preferenciasUsuario)
 		.where(eq(schema.preferenciasUsuario.userId, userId))

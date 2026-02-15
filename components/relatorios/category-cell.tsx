@@ -32,6 +32,13 @@ export function CategoryCell({
 	const isIncrease = percentageChange !== null && percentageChange > 0;
 	const isDecrease = percentageChange !== null && percentageChange < 0;
 
+	// Despesa: aumento é ruim (vermelho), diminuição é bom (verde)
+	// Receita: aumento é bom (verde), diminuição é ruim (vermelho)
+	const isPositive =
+		categoryType === "receita" ? isIncrease : isDecrease;
+	const isNegative =
+		categoryType === "receita" ? isDecrease : isIncrease;
+
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
@@ -41,8 +48,8 @@ export function CategoryCell({
 						<div
 							className={cn(
 								"flex items-center gap-0.5 text-xs",
-								isIncrease && "text-destructive",
-								isDecrease && "text-success",
+								isNegative && "text-destructive",
+								isPositive && "text-success",
 							)}
 						>
 							{isIncrease && <RiArrowUpSFill className="h-3 w-3" />}
@@ -63,8 +70,8 @@ export function CategoryCell({
 							<div
 								className={cn(
 									"font-medium",
-									isIncrease && "text-destructive",
-									isDecrease && "text-success",
+									isNegative && "text-destructive",
+									isPositive && "text-success",
 								)}
 							>
 								Diferença:{" "}

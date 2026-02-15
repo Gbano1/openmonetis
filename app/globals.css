@@ -7,6 +7,10 @@
 }
 
 :root {
+  /* Font customization */
+  --font-app: var(--font-ai-sans);
+  --font-money: var(--font-ai-sans);
+
   /* Base surfaces - warm cream with subtle orange undertone */
   --background: oklch(96.563% 0.00504 67.275);
   --foreground: oklch(18% 0.02 45);
@@ -71,7 +75,7 @@
   --sidebar-ring: oklch(69.18% 0.18855 38.353);
 
   /* Layout */
-  --radius: 0.8rem;
+  --radius: 1rem;
 
   /* Shadows - warm tinted for cohesion */
   --shadow-2xs: 0 1px 2px 0px oklch(35% 0.02 45 / 0.04);
@@ -160,7 +164,7 @@
   --sidebar-ring: oklch(69.18% 0.18855 38.353);
 
   /* Layout */
-  --radius: 0.8rem;
+  --radius: 1rem;
 
   /* Shadows - deeper for dark mode */
   --shadow-2xs: 0 1px 2px 0px oklch(0% 0 0 / 0.3);
@@ -186,6 +190,8 @@
 }
 
 @theme inline {
+  --default-font-family: var(--font-app);
+  --default-mono-font-family: var(--font-money);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

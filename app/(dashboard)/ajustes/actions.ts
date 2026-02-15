@@ -1,11 +1,12 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
+import { verifyPassword } from "better-auth/crypto";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { pagadores, tokensApi } from "@/db/schema";
+import { account, pagadores, tokensApi } from "@/db/schema";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db";
 import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";
@@ -51,8 +52,26 @@ const deleteAccountSchema = z.object({
 	}),
 });
 
+const VALID_FONTS = [
+	"ai-sans",
+	"anthropic-sans",
+"fira-code",
+	"fira-sans",
+	"geist",
+"ibm-plex-mono",
+	"inter",
+	"jetbrains-mono",
+	"reddit-sans",
+	"roboto",
+	"sf-pro-display",
+	"sf-pro-rounded",
+	"ubuntu",
+] as const;
+
 const updatePreferencesSchema = z.object({
 	disableMagnetlines: z.boolean(),
+	systemFont: z.enum(VALID_FONTS).default("ai-sans"),
+	moneyFont: z.enum(VALID_FONTS).default("ai-sans"),
 });
 
 // Actions
@@ -235,19 +254,32 @@ export async function updateEmailAction(
 				};
 			}
 
-			// Validar senha tentando fazer changePassword para a mesma senha
-			// Se falhar, a senha atual está incorreta
-			try {
-				await auth.api.changePassword({
-					body: {
-						newPassword: validated.password,
-						currentPassword: validated.password,
-					},
-					headers: await headers(),
-				});
-			} catch (authError: any) {
-				// Se der erro é porque a senha está incorreta
-				console.error("Erro ao validar senha:", authError);
+			// Buscar hash da senha no registro de credencial
+			const credentialAccount = await db
+				.select({ password: account.password })
+				.from(account)
+				.where(
+					and(
+						eq(account.userId, session.user.id),
+						eq(account.providerId, "credential"),
+					),
+				)
+				.limit(1);
+
+			const storedHash = credentialAccount[0]?.password;
+			if (!storedHash) {
+				return {
+					success: false,
+					error: "Conta de credencial não encontrada.",
+				};
+			}
+
+			const isValid = await verifyPassword({
+				password: validated.password,
+				hash: storedHash,
+			});
+
+			if (!isValid) {
 				return {
 					success: false,
 					error: "Senha incorreta",
@@ -385,6 +417,8 @@ export async function updatePreferencesAction(
 				.update(schema.preferenciasUsuario)
 				.set({
 					disableMagnetlines: validated.disableMagnetlines,
+					systemFont: validated.systemFont,
+					moneyFont: validated.moneyFont,
 					updatedAt: new Date(),
 				})
 				.where(eq(schema.preferenciasUsuario.userId, session.user.id));
@@ -393,6 +427,8 @@ export async function updatePreferencesAction(
 			await db.insert(schema.preferenciasUsuario).values({
 				userId: session.user.id,
 				disableMagnetlines: validated.disableMagnetlines,
+				systemFont: validated.systemFont,
+				moneyFont: validated.moneyFont,
 			});
 		}
 

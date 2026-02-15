@@ -1,3 +1,4 @@
+import { FontProvider } from "@/components/font-provider";
 import { SiteHeader } from "@/components/header-dashboard";
 import { PrivacyProvider } from "@/components/privacy-provider";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
@@ -6,6 +7,7 @@ import { getUserSession } from "@/lib/auth/server";
 import { fetchDashboardNotifications } from "@/lib/dashboard/notifications";
 import { fetchPagadoresWithAccess } from "@/lib/pagadores/access";
 import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";
+import { fetchUserFontPreferences } from "@/lib/preferences/fonts";
 import { parsePeriodParam } from "@/lib/utils/period";
 import { fetchPendingInboxCount } from "./pre-lancamentos/data";
 
@@ -41,35 +43,43 @@ export default async function DashboardLayout({
 		currentPeriod,
 	);
 
-	// Buscar contagem de pré-lançamentos pendentes
-	const preLancamentosCount = await fetchPendingInboxCount(session.user.id);
+	// Buscar contagem de pré-lançamentos pendentes e preferências de fonte
+	const [preLancamentosCount, fontPrefs] = await Promise.all([
+		fetchPendingInboxCount(session.user.id),
+		fetchUserFontPreferences(session.user.id),
+	]);
 
 	return (
-		<PrivacyProvider>
-			<SidebarProvider>
-				<AppSidebar
-					user={{ ...session.user, image: session.user.image ?? null }}
-					pagadorAvatarUrl={adminPagador?.avatarUrl ?? null}
-					pagadores={pagadoresList.map((item) => ({
-						id: item.id,
-						name: item.name,
-						avatarUrl: item.avatarUrl,
-						canEdit: item.canEdit,
-					}))}
-					preLancamentosCount={preLancamentosCount}
-					variant="sidebar"
-				/>
-				<SidebarInset>
-					<SiteHeader notificationsSnapshot={notificationsSnapshot} />
-					<div className="flex flex-1 flex-col">
-						<div className="@container/main flex flex-1 flex-col gap-2">
-							<div className="flex flex-col gap-4 py-4 md:gap-6">
-								{children}
+		<FontProvider
+			systemFont={fontPrefs.systemFont}
+			moneyFont={fontPrefs.moneyFont}
+		>
+			<PrivacyProvider>
+				<SidebarProvider>
+					<AppSidebar
+						user={{ ...session.user, image: session.user.image ?? null }}
+						pagadorAvatarUrl={adminPagador?.avatarUrl ?? null}
+						pagadores={pagadoresList.map((item) => ({
+							id: item.id,
+							name: item.name,
+							avatarUrl: item.avatarUrl,
+							canEdit: item.canEdit,
+						}))}
+						preLancamentosCount={preLancamentosCount}
+						variant="sidebar"
+					/>
+					<SidebarInset>
+						<SiteHeader notificationsSnapshot={notificationsSnapshot} />
+						<div className="flex flex-1 flex-col">
+							<div className="@container/main flex flex-1 flex-col gap-2">
+								<div className="flex flex-col gap-4 py-4 md:gap-6">
+									{children}
+								</div>
 							</div>
 						</div>
-					</div>
-				</SidebarInset>
-			</SidebarProvider>
-		</PrivacyProvider>
+					</SidebarInset>
+				</SidebarProvider>
+			</PrivacyProvider>
+		</FontProvider>
 	);
 }

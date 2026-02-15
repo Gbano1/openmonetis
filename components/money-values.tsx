@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils/ui";
-import { money_font } from "@/public/fonts/font_index";
 import { usePrivacyMode } from "./privacy-provider";
 
 type Props = {
@@ -24,8 +23,8 @@ function MoneyValues({ amount, className, showPositiveSign = false }: Props) {
 
 	return (
 		<span
+			style={{ fontFamily: "var(--font-money)" }}
 			className={cn(
-				money_font.className,
 				"inline-flex items-baseline transition-all duration-200 tracking-tighter",
 				privacyMode &&
 					"blur-[6px] select-none hover:blur-none focus-within:blur-none",

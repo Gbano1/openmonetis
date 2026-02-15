@@ -61,6 +61,8 @@ export default async function Page() {
 								disableMagnetlines={
 									userPreferences?.disableMagnetlines ?? false
 								}
+								systemFont={userPreferences?.systemFont ?? "ai-sans"}
+								moneyFont={userPreferences?.moneyFont ?? "ai-sans"}
 							/>
 						</div>
 					</Card>
