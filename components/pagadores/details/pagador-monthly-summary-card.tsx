@@ -44,19 +44,19 @@ export function PagadorMonthlySummaryCard({
 	let offset = 0;
 
 	return (
-		<Card className="border">
-			<CardHeader className="flex flex-col gap-1.5 pb-4">
+		<Card>
+			<CardHeader className="flex flex-col gap-1.5">
 				<CardTitle className="text-lg font-semibold">Totais do mês</CardTitle>
 				<p className="text-xs text-muted-foreground">
-					{periodLabel} - despesas por forma de pagamento
+					{periodLabel} - Despesas por forma de pagamento
 				</p>
 			</CardHeader>
 
 			<CardContent className="space-y-4 pt-0">
 				<div className="space-y-2">
 					<div>
-						<span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-							Total gasto no mês
+						<span className="text-xs tracking-wide text-muted-foreground">
+							Total
 						</span>
 						<MoneyValues
 							amount={breakdown.totalExpenses}

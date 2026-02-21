@@ -215,6 +215,27 @@ export function LancamentoDialog({
 
 			const sanitizedAmount = Math.abs(amountValue);
 
+			if (!formState.categoriaId) {
+				const message = "Selecione uma categoria.";
+				setErrorMessage(message);
+				toast.error(message);
+				return;
+			}
+
+			if (formState.paymentMethod === "Cartão de crédito") {
+				if (!formState.cartaoId) {
+					const message = "Selecione o cartão.";
+					setErrorMessage(message);
+					toast.error(message);
+					return;
+				}
+			} else if (!formState.contaId) {
+				const message = "Selecione a conta.";
+				setErrorMessage(message);
+				toast.error(message);
+				return;
+			}
+
 			const payload = {
 				purchaseDate: formState.purchaseDate,
 				period: formState.period,
@@ -382,6 +403,7 @@ export function LancamentoDialog({
 				<form
 					className="space-y-2 -mx-6 max-h-[80vh] overflow-y-auto px-6 pb-1"
 					onSubmit={handleSubmit}
+					noValidate
 				>
 					<BasicFieldsSection
 						formState={formState}

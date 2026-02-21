@@ -1,3 +1,8 @@
+import {
+	RiBankCard2Line,
+	RiBarcodeLine,
+	RiWallet3Line,
+} from "@remixicon/react";
 import { notFound } from "next/navigation";
 import { getRecentEstablishmentsAction } from "@/app/(dashboard)/lancamentos/actions";
 import { LancamentosPage as LancamentosSection } from "@/components/lancamentos/page/lancamentos-page";
@@ -13,9 +18,13 @@ import { PagadorHistoryCard } from "@/components/pagadores/details/pagador-histo
 import { PagadorInfoCard } from "@/components/pagadores/details/pagador-info-card";
 import { PagadorLeaveShareCard } from "@/components/pagadores/details/pagador-leave-share-card";
 import { PagadorMonthlySummaryCard } from "@/components/pagadores/details/pagador-monthly-summary-card";
-import { PagadorBoletoCard } from "@/components/pagadores/details/pagador-payment-method-cards";
+import {
+	PagadorBoletoCard,
+	PagadorPaymentStatusCard,
+} from "@/components/pagadores/details/pagador-payment-method-cards";
 import { PagadorSharingCard } from "@/components/pagadores/details/pagador-sharing-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import WidgetCard from "@/components/widget-card";
 import type { pagadores } from "@/db/schema";
 import { getUserId } from "@/lib/auth/server";
 import {
@@ -34,10 +43,12 @@ import {
 } from "@/lib/lancamentos/page-helpers";
 import { getPagadorAccess } from "@/lib/pagadores/access";
 import {
+	fetchPagadorBoletoItems,
 	fetchPagadorBoletoStats,
 	fetchPagadorCardUsage,
 	fetchPagadorHistory,
 	fetchPagadorMonthlyBreakdown,
+	fetchPagadorPaymentStatus,
 } from "@/lib/pagadores/details";
 import { parsePeriodParam } from "@/lib/utils/period";
 import {
@@ -152,6 +163,8 @@ export default async function Page({ params, searchParams }: PageProps) {
 		historyData,
 		cardUsage,
 		boletoStats,
+		boletoItems,
+		paymentStatus,
 		shareRows,
 		currentUserShare,
 		estabelecimentos,
@@ -173,6 +186,16 @@ export default async function Page({ params, searchParams }: PageProps) {
 			period: selectedPeriod,
 		}),
 		fetchPagadorBoletoStats({
+			userId: dataOwnerId,
+			pagadorId: pagador.id,
+			period: selectedPeriod,
+		}),
+		fetchPagadorBoletoItems({
+			userId: dataOwnerId,
+			pagadorId: pagador.id,
+			period: selectedPeriod,
+		}),
+		fetchPagadorPaymentStatus({
 			userId: dataOwnerId,
 			pagadorId: pagador.id,
 			period: selectedPeriod,
@@ -308,7 +331,7 @@ export default async function Page({ params, searchParams }: PageProps) {
 				</TabsContent>
 
 				<TabsContent value="painel" className="space-y-4">
-					<section className="grid gap-4 lg:grid-cols-2">
+					<section className="grid gap-3 lg:grid-cols-2">
 						<PagadorMonthlySummaryCard
 							periodLabel={periodLabel}
 							breakdown={monthlyBreakdown}
@@ -316,9 +339,28 @@ export default async function Page({ params, searchParams }: PageProps) {
 						<PagadorHistoryCard data={historyData} />
 					</section>
 
-					<section className="grid gap-4 lg:grid-cols-2">
-						<PagadorCardUsageCard items={cardUsage} />
-						<PagadorBoletoCard stats={boletoStats} />
+					<section className="grid gap-3 lg:grid-cols-3">
+						<WidgetCard
+							title="Minhas Faturas"
+							subtitle="Valores por cartão neste período"
+							icon={<RiBankCard2Line className="size-4" />}
+						>
+							<PagadorCardUsageCard items={cardUsage} />
+						</WidgetCard>
+						<WidgetCard
+							title="Boletos"
+							subtitle="Boletos registrados neste período"
+							icon={<RiBarcodeLine className="size-4" />}
+						>
+							<PagadorBoletoCard items={boletoItems} />
+						</WidgetCard>
+						<WidgetCard
+							title="Status de Pagamento"
+							subtitle="Situação das despesas no período"
+							icon={<RiWallet3Line className="size-4" />}
+						>
+							<PagadorPaymentStatusCard data={paymentStatus} />
+						</WidgetCard>
 					</section>
 				</TabsContent>
 

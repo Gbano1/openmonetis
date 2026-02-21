@@ -1,108 +1,163 @@
-import { RiBarcodeLine } from "@remixicon/react";
+import {
+	RiBarcodeLine,
+	RiCheckboxCircleLine,
+	RiHourglass2Line,
+	RiWallet3Line,
+} from "@remixicon/react";
+import { EstabelecimentoLogo } from "@/components/lancamentos/shared/estabelecimento-logo";
 import MoneyValues from "@/components/money-values";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { WidgetEmptyState } from "@/components/widget-empty-state";
-import type { PagadorBoletoStats } from "@/lib/pagadores/details";
+import type {
+	PagadorBoletoItem,
+	PagadorPaymentStatusData,
+} from "@/lib/pagadores/details";
 import { cn } from "@/lib/utils/ui";
 
-type PagadorBoletoCardProps = {
-	stats: PagadorBoletoStats;
+// --- Boleto helpers ---
+
+const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+	day: "2-digit",
+	month: "short",
+	year: "numeric",
+	timeZone: "UTC",
+});
+
+const buildDateLabel = (value: string | null, prefix?: string) => {
+	if (!value) return null;
+	const [year, month, day] = value.split("-").map((part) => Number(part));
+	if (!year || !month || !day) return null;
+	const formatted = DATE_FORMATTER.format(
+		new Date(Date.UTC(year, month - 1, day)),
+	);
+	return prefix ? `${prefix} ${formatted}` : formatted;
 };
 
-export function PagadorBoletoCard({ stats }: PagadorBoletoCardProps) {
-	const total = stats.totalAmount;
-	const paidPercent =
-		total > 0 ? Math.round((stats.paidAmount / total) * 100) : 0;
-	const pendingPercent =
-		total > 0 ? Math.round((stats.pendingAmount / total) * 100) : 0;
+const buildStatusLabel = (item: PagadorBoletoItem) => {
+	if (item.isSettled) return buildDateLabel(item.boletoPaymentDate, "Pago em");
+	return buildDateLabel(item.dueDate, "Vence em");
+};
+
+// --- PagadorBoletoCard ---
+
+type PagadorBoletoCardProps = {
+	items: PagadorBoletoItem[];
+};
+
+export function PagadorBoletoCard({ items }: PagadorBoletoCardProps) {
+	if (items.length === 0) {
+		return (
+			<CardContent className="px-0">
+				<WidgetEmptyState
+					icon={<RiBarcodeLine className="size-6 text-muted-foreground" />}
+					title="Nenhum boleto cadastrado para o período"
+					description="Quando houver despesas registradas com boleto, elas aparecerão aqui."
+				/>
+			</CardContent>
+		);
+	}
 
 	return (
-		<Card className="border">
-			<CardHeader>
-				<CardTitle className="text-xl font-semibold">Boletos</CardTitle>
-				<p className="text-sm text-muted-foreground">
-					Totais por status considerando o período atual.
-				</p>
-			</CardHeader>
-			<CardContent className="space-y-4 pt-2">
-				{total === 0 ? (
-					<WidgetEmptyState
-						icon={<RiBarcodeLine className="size-6 text-muted-foreground" />}
-						title="Nenhum lançamento com boleto"
-						description="Quando houver despesas registradas com boleto, elas aparecerão aqui."
-					/>
-				) : (
-					<>
-						<div>
-							<span className="text-xs uppercase tracking-wide text-muted-foreground">
-								Total de boletos
-							</span>
-							<MoneyValues
-								amount={total}
-								className="block text-2xl font-semibold text-foreground"
-							/>
-						</div>
-
-						<div className="space-y-2 border rounded-lg p-3">
-							<StatusRow
-								label="Pagos"
-								amount={stats.paidAmount}
-								count={stats.paidCount}
-								percent={paidPercent}
-								tone="success"
-							/>
-							<Separator />
-							<StatusRow
-								label="Pendentes"
-								amount={stats.pendingAmount}
-								count={stats.pendingCount}
-								percent={pendingPercent}
-								tone="warning"
-							/>
-						</div>
-					</>
-				)}
-			</CardContent>
-		</Card>
+		<CardContent className="flex flex-col gap-4 px-0">
+			<ul className="flex flex-col">
+				{items.map((item) => {
+					const statusLabel = buildStatusLabel(item);
+					return (
+						<li
+							key={item.id}
+							className="flex items-center justify-between border-b border-dashed last:border-b-0 last:pb-0"
+						>
+							<div className="flex min-w-0 flex-1 items-center gap-3 py-2">
+								<EstabelecimentoLogo name={item.name} size={36} />
+								<div className="min-w-0">
+									<span className="block truncate text-sm font-medium text-foreground">
+										{item.name}
+									</span>
+									{statusLabel ? (
+										<span
+											className={cn(
+												"text-xs text-muted-foreground",
+												item.isSettled && "text-success",
+											)}
+										>
+											{statusLabel}
+										</span>
+									) : null}
+								</div>
+							</div>
+							<MoneyValues amount={item.amount} />
+						</li>
+					);
+				})}
+			</ul>
+		</CardContent>
 	);
 }
 
-type StatusRowProps = {
-	label: string;
-	amount: number;
-	count: number;
-	percent: number;
-	tone: "success" | "warning";
+// --- PagadorPaymentStatusCard ---
+
+type PagadorPaymentStatusCardProps = {
+	data: PagadorPaymentStatusData;
 };
 
-function StatusRow({ label, amount, count, percent, tone }: StatusRowProps) {
-	const clampedPercent = Math.min(Math.max(percent, 0), 100);
+export function PagadorPaymentStatusCard({
+	data,
+}: PagadorPaymentStatusCardProps) {
+	const { paidAmount, paidCount, pendingAmount, pendingCount, totalAmount } =
+		data;
+
+	if (totalAmount === 0) {
+		return (
+			<CardContent className="px-0">
+				<WidgetEmptyState
+					icon={<RiWallet3Line className="size-6 text-muted-foreground" />}
+					title="Nenhuma despesa no período"
+					description="Registre lançamentos para visualizar o status de pagamento."
+				/>
+			</CardContent>
+		);
+	}
+
+	const paidPercentage = (paidAmount / totalAmount) * 100;
+
 	return (
-		<div className="space-y-1 rounded p-3">
-			<div className="flex items-center justify-between text-sm font-semibold">
-				<span>{label}</span>
-				<span className="text-muted-foreground">{count} registros</span>
-			</div>
-			<MoneyValues
-				amount={amount}
-				className={cn(
-					"text-xl font-semibold",
-					tone === "success" ? "text-success" : "text-warning",
-				)}
-			/>
-			<div className="flex items-center justify-between text-xs text-muted-foreground">
-				<span>{clampedPercent}% do total</span>
-				<div className="h-1.5 w-1/2 rounded-full bg-border/80">
-					<div
-						className={cn(
-							"h-full rounded-full",
-							tone === "success" ? "bg-success" : "bg-warning",
-						)}
-						style={{ width: `${clampedPercent}%` }}
-					/>
+		<CardContent className="space-y-6 px-0">
+			<div className="space-y-2">
+				<div className="flex items-center justify-between">
+					<span className="text-sm font-medium text-foreground">Pago</span>
+					<MoneyValues amount={paidAmount} />
+				</div>
+				<Progress value={paidPercentage} className="h-2" />
+				<div className="flex items-center justify-between gap-4 text-sm">
+					<div className="flex items-center gap-1.5">
+						<RiCheckboxCircleLine className="size-3 text-success" />
+						<MoneyValues amount={paidAmount} />
+						<span className="text-xs text-muted-foreground">
+							({paidCount} registro{paidCount !== 1 ? "s" : ""})
+						</span>
+					</div>
 				</div>
 			</div>
-		</div>
+
+			<div className="border-t border-dashed" />
+
+			<div className="space-y-2">
+				<div className="flex items-center justify-between">
+					<span className="text-sm font-medium text-foreground">Pendente</span>
+					<MoneyValues amount={pendingAmount} />
+				</div>
+				<Progress value={100 - paidPercentage} className="h-2" />
+				<div className="flex items-center justify-between gap-4 text-sm">
+					<div className="flex items-center gap-1.5">
+						<RiHourglass2Line className="size-3 text-warning" />
+						<MoneyValues amount={pendingAmount} />
+						<span className="text-xs text-muted-foreground">
+							({pendingCount} registro{pendingCount !== 1 ? "s" : ""})
+						</span>
+					</div>
+				</div>
+			</div>
+		</CardContent>
 	);
 }

@@ -5,6 +5,27 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.5.3] - 2026-02-21
+
+### Adicionado
+
+- Painel do pagador: card "Status de Pagamento" com totais pagos/pendentes e listagem individual de boletos com data de vencimento, data de pagamento e status
+- Funções `fetchPagadorBoletoItems` e `fetchPagadorPaymentStatus` em `lib/pagadores/details.ts`
+- SEO completo na landing page: metadata Open Graph, Twitter Card, JSON-LD Schema.org, sitemap.xml (`/app/sitemap.ts`) e robots.txt (`/app/robots.ts`)
+- Layout específico da landing page (`app/(landing-page)/layout.tsx`) com metadados ricos
+
+### Corrigido
+
+- Validação obrigatória de categoria, conta e cartão no dialog de lançamento — agora validada no cliente (antes do submit) e no servidor via Zod
+- Atributo `lang` do HTML corrigido de `en` para `pt-BR`
+
+### Alterado
+
+- Painel do pagador reorganizado em grid de 3 colunas com cards de Faturas, Boletos e Status de Pagamento
+- `PagadorBoletoCard` refatorado para exibir lista de boletos individuais em vez de resumo agregado
+- Imagens da landing page convertidas de PNG para WebP (melhora de performance)
+- Template de título dinâmico no layout raiz (`%s | OpenMonetis`)
+
 ## [1.5.2] - 2026-02-16
 
 ### Alterado

@@ -120,20 +120,20 @@ const screenshotSections = [
 	{
 		title: "Lançamentos",
 		description: "Registre e organize todas as suas transações financeiras",
-		lightSrc: "/preview-lancamentos-light.png",
-		darkSrc: "/preview-lancamentos-dark.png",
+		lightSrc: "/preview-lancamentos-light.webp",
+		darkSrc: "/preview-lancamentos-dark.webp",
 	},
 	{
 		title: "Calendário",
 		description: "Visualize suas finanças no calendário mensal",
-		lightSrc: "/preview-calendario-light.png",
-		darkSrc: "/preview-calendario-dark.png",
+		lightSrc: "/preview-calendario-light.webp",
+		darkSrc: "/preview-calendario-dark.webp",
 	},
 	{
 		title: "Cartões",
 		description: "Acompanhe faturas, limites e vencimentos dos seus cartões",
-		lightSrc: "/preview-cartao-light.png",
-		darkSrc: "/preview-cartao-dark.png",
+		lightSrc: "/preview-cartao-light.webp",
+		darkSrc: "/preview-cartao-dark.webp",
 	},
 ];
 
@@ -355,7 +355,7 @@ export default async function Page() {
 						<AnimateOnScroll>
 							<div>
 								<Image
-									src="/dashboard-preview-light.png"
+									src="/dashboard-preview-light.webp"
 									alt="openmonetis Dashboard Preview"
 									width={1920}
 									height={1080}
@@ -363,7 +363,7 @@ export default async function Page() {
 									priority
 								/>
 								<Image
-									src="/dashboard-preview-dark.png"
+									src="/dashboard-preview-dark.webp"
 									alt="openmonetis Dashboard Preview"
 									width={1920}
 									height={1080}
@@ -609,7 +609,7 @@ export default async function Page() {
 								<div className="order-1 md:order-2 flex items-center justify-center">
 									<div className="w-full max-w-[220px] md:max-w-[260px]">
 										<Image
-											src="/openmonetis_companion.png"
+											src="/openmonetis_companion.webp"
 											alt="OpenMonetis Companion App"
 											width={1080}
 											height={2217}

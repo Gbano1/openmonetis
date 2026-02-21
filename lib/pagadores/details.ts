@@ -1,5 +1,6 @@
 import {
 	and,
+	asc,
 	eq,
 	gte,
 	ilike,
@@ -45,6 +46,29 @@ export type PagadorBoletoStats = {
 	pendingAmount: number;
 	paidCount: number;
 	pendingCount: number;
+};
+
+export type PagadorBoletoItem = {
+	id: string;
+	name: string;
+	amount: number;
+	dueDate: string | null;
+	boletoPaymentDate: string | null;
+	isSettled: boolean;
+};
+
+export type PagadorPaymentStatusData = {
+	paidAmount: number;
+	paidCount: number;
+	pendingAmount: number;
+	pendingCount: number;
+	totalAmount: number;
+};
+
+const toISODate = (value: Date | string | null | undefined): string | null => {
+	if (!value) return null;
+	if (value instanceof Date) return value.toISOString().slice(0, 10);
+	return typeof value === "string" ? value : null;
 };
 
 const toNumber = (value: string | number | bigint | null) => {
@@ -321,5 +345,89 @@ export async function fetchPagadorBoletoStats({
 		pendingAmount,
 		paidCount,
 		pendingCount,
+	};
+}
+
+export async function fetchPagadorBoletoItems({
+	userId,
+	pagadorId,
+	period,
+}: BaseFilters): Promise<PagadorBoletoItem[]> {
+	const rows = await db
+		.select({
+			id: lancamentos.id,
+			name: lancamentos.name,
+			amount: lancamentos.amount,
+			dueDate: lancamentos.dueDate,
+			boletoPaymentDate: lancamentos.boletoPaymentDate,
+			isSettled: lancamentos.isSettled,
+		})
+		.from(lancamentos)
+		.where(
+			and(
+				eq(lancamentos.userId, userId),
+				eq(lancamentos.pagadorId, pagadorId),
+				eq(lancamentos.period, period),
+				eq(lancamentos.paymentMethod, PAYMENT_METHOD_BOLETO),
+				excludeAutoInvoiceEntries(),
+			),
+		)
+		.orderBy(asc(lancamentos.dueDate));
+
+	return rows.map((row) => ({
+		id: row.id,
+		name: row.name,
+		amount: Math.abs(toNumber(row.amount)),
+		dueDate: toISODate(row.dueDate),
+		boletoPaymentDate: toISODate(row.boletoPaymentDate),
+		isSettled: Boolean(row.isSettled),
+	}));
+}
+
+export async function fetchPagadorPaymentStatus({
+	userId,
+	pagadorId,
+	period,
+}: BaseFilters): Promise<PagadorPaymentStatusData> {
+	const rows = await db
+		.select({
+			paidAmount: sql<string>`coalesce(sum(case when ${lancamentos.isSettled} = true then abs(${lancamentos.amount}) else 0 end), 0)`,
+			paidCount: sql<number>`sum(case when ${lancamentos.isSettled} = true then 1 else 0 end)`,
+			pendingAmount: sql<string>`coalesce(sum(case when (${lancamentos.isSettled} = false or ${lancamentos.isSettled} is null) then abs(${lancamentos.amount}) else 0 end), 0)`,
+			pendingCount: sql<number>`sum(case when (${lancamentos.isSettled} = false or ${lancamentos.isSettled} is null) then 1 else 0 end)`,
+		})
+		.from(lancamentos)
+		.where(
+			and(
+				eq(lancamentos.userId, userId),
+				eq(lancamentos.pagadorId, pagadorId),
+				eq(lancamentos.period, period),
+				eq(lancamentos.transactionType, DESPESA),
+				excludeAutoInvoiceEntries(),
+			),
+		);
+
+	const row = rows[0];
+	if (!row) {
+		return {
+			paidAmount: 0,
+			paidCount: 0,
+			pendingAmount: 0,
+			pendingCount: 0,
+			totalAmount: 0,
+		};
+	}
+
+	const paidAmount = toNumber(row.paidAmount);
+	const paidCount = toNumber(row.paidCount);
+	const pendingAmount = toNumber(row.pendingAmount);
+	const pendingCount = toNumber(row.pendingCount);
+
+	return {
+		paidAmount,
+		paidCount,
+		pendingAmount,
+		pendingCount,
+		totalAmount: paidAmount + pendingAmount,
 	};
 }

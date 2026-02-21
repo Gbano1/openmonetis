@@ -182,6 +182,30 @@ const refineLancamento = (
 	data: z.infer<typeof baseFields> & { id?: string },
 	ctx: z.RefinementCtx,
 ) => {
+	if (!data.categoriaId) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["categoriaId"],
+			message: "Selecione uma categoria.",
+		});
+	}
+
+	if (data.paymentMethod === "Cartão de crédito") {
+		if (!data.cartaoId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["cartaoId"],
+				message: "Selecione o cartão.",
+			});
+		}
+	} else if (!data.contaId) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["contaId"],
+			message: "Selecione a conta.",
+		});
+	}
+
 	if (data.condition === "Parcelado") {
 		if (!data.installmentCount) {
 			ctx.addIssue({

@@ -1,7 +1,7 @@
 import { RiBankCard2Line } from "@remixicon/react";
 import Image from "next/image";
 import MoneyValues from "@/components/money-values";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { WidgetEmptyState } from "@/components/widget-empty-state";
 import type { PagadorCardUsageItem } from "@/lib/pagadores/details";
 
@@ -17,74 +17,76 @@ const resolveLogoPath = (logo?: string | null) => {
 	return logo.startsWith("/") ? logo : `/logos/${logo}`;
 };
 
+const buildInitials = (value: string) => {
+	const parts = value.trim().split(/\s+/).filter(Boolean);
+	if (parts.length === 0) return "CC";
+	if (parts.length === 1) {
+		const firstPart = parts[0];
+		return firstPart ? firstPart.slice(0, 2).toUpperCase() : "CC";
+	}
+	const firstChar = parts[0]?.[0] ?? "";
+	const secondChar = parts[1]?.[0] ?? "";
+	return `${firstChar}${secondChar}`.toUpperCase() || "CC";
+};
+
 type PagadorCardUsageCardProps = {
 	items: PagadorCardUsageItem[];
 };
 
 export function PagadorCardUsageCard({ items }: PagadorCardUsageCardProps) {
-	return (
-		<Card className="border">
-			<CardHeader>
-				<CardTitle className="text-xl font-semibold">
-					Cartões utilizados
-				</CardTitle>
-				<p className="text-sm text-muted-foreground">
-					Valores por cartão neste período (inclui logo quando disponível).
-				</p>
-			</CardHeader>
-
-			<CardContent className="space-y-3 pt-2">
-				{items.length === 0 ? (
-					<WidgetEmptyState
-						icon={<RiBankCard2Line className="size-6 text-muted-foreground" />}
-						title="Nenhum lançamento com cartão de crédito"
-						description="Quando houver despesas registradas com cartão, elas aparecerão aqui."
-					/>
-				) : (
-					<ul className="space-y-3">
-						{items.map((item) => {
-							const logoPath = resolveLogoPath(item.logo);
-							return (
-								<li
-									key={item.id}
-									className="flex items-center justify-between gap-3 rounded-xl border border-border/80 px-4 py-3"
-								>
-									<div className="flex items-center gap-3">
-										{logoPath ? (
-											<span className="flex size-10 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-background">
-												<Image
-													src={logoPath}
-													alt={`Logo ${item.name}`}
-													width={40}
-													height={40}
-													className="h-full w-full object-contain"
-												/>
-											</span>
-										) : (
-											<span className="flex size-10 items-center justify-center rounded-full bg-muted text-xs font-semibold uppercase text-muted-foreground">
-												{item.name.slice(0, 2)}
-											</span>
-										)}
-
-										<div className="flex flex-col">
-											<span className="font-medium text-foreground">
-												{item.name}
-											</span>
-											<span className="text-xs text-muted-foreground">
-												Despesas no mês
-											</span>
-										</div>
-									</div>
-									<MoneyValues
-										amount={item.amount}
-										className="text-lg font-semibold text-foreground"
-									/>
-								</li>
-							);
-						})}
-					</ul>
-				)}
+	if (items.length === 0) {
+		return (
+			<CardContent className="px-0">
+				<WidgetEmptyState
+					icon={<RiBankCard2Line className="size-6 text-muted-foreground" />}
+					title="Nenhum lançamento com cartão de crédito"
+					description="Quando houver despesas registradas com cartão, elas aparecerão aqui."
+				/>
 			</CardContent>
-		</Card>
+		);
+	}
+
+	return (
+		<CardContent className="flex flex-col gap-4 px-0">
+			<ul className="flex flex-col">
+				{items.map((item) => {
+					const logoPath = resolveLogoPath(item.logo);
+					const initials = buildInitials(item.name);
+					return (
+						<li
+							key={item.id}
+							className="flex items-center justify-between border-b border-dashed last:border-b-0 last:pb-0"
+						>
+							<div className="flex min-w-0 flex-1 items-center gap-2 py-2">
+								<div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full">
+									{logoPath ? (
+										<Image
+											src={logoPath}
+											alt={`Logo do cartão ${item.name}`}
+											width={36}
+											height={36}
+											className="h-full w-full object-contain"
+										/>
+									) : (
+										<span className="text-sm font-semibold uppercase text-muted-foreground">
+											{initials}
+										</span>
+									)}
+								</div>
+								<div className="min-w-0">
+									<span className="block truncate text-sm font-medium text-foreground">
+										{item.name}
+									</span>
+									<span className="text-xs text-muted-foreground">
+										Despesas no mês
+									</span>
+								</div>
+							</div>
+							<MoneyValues amount={item.amount} />
+						</li>
+					);
+				})}
+			</ul>
+		</CardContent>
 	);
 }
