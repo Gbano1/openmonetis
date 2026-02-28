@@ -29,14 +29,14 @@ export function EstablishmentsList({
 }: EstablishmentsListProps) {
 	if (establishments.length === 0) {
 		return (
-			<Card className="h-full">
-				<CardHeader className="pb-3">
+			<Card className="h-full min-w-0">
+				<CardHeader className="pb-3 px-3 sm:px-6">
 					<CardTitle className="flex items-center gap-1.5 text-base">
 						<RiStore2Line className="size-4 text-primary" />
 						Top Estabelecimentos
 					</CardTitle>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="px-3 sm:px-6">
 					<WidgetEmptyState
 						icon={<RiStore2Line className="size-6 text-muted-foreground" />}
 						title="Nenhum estabelecimento encontrado"
@@ -50,33 +50,29 @@ export function EstablishmentsList({
 	const maxCount = Math.max(...establishments.map((e) => e.count));
 
 	return (
-		<Card className="h-full">
-			<CardHeader className="pb-3">
+		<Card className="h-full min-w-0 overflow-hidden">
+			<CardHeader className="pb-3 px-3 sm:px-6">
 				<CardTitle className="flex items-center gap-1.5 text-base">
-					<RiStore2Line className="size-4 text-primary" />
-					Top Estabelecimentos por Frequência
+					<RiStore2Line className="size-4 shrink-0 text-primary" />
+					<span className="truncate">Top Estabelecimentos por Frequência</span>
 				</CardTitle>
 			</CardHeader>
-			<CardContent className="pt-0">
-				<div className="flex flex-col">
+			<CardContent className="pt-0 px-3 sm:px-6">
+				<div className="flex flex-col min-w-0">
 					{establishments.map((establishment, index) => {
-						const _initials = buildInitials(establishment.name);
-
 						return (
 							<div
 								key={establishment.name}
-								className="flex flex-col py-2 border-b border-dashed last:border-0"
+								className="flex flex-col py-2 sm:py-2.5 border-b border-dashed last:border-0"
 							>
-								<div className="flex items-center justify-between gap-3">
-									<div className="flex min-w-0 flex-1 items-center gap-2">
-										{/* Rank number - same size as icon containers */}
-										<div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
-											<span className="text-sm font-semibold text-muted-foreground">
+								<div className="flex items-start sm:items-center justify-between gap-2 sm:gap-3">
+									<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+										<div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+											<span className="text-xs sm:text-sm font-semibold text-muted-foreground">
 												{index + 1}
 											</span>
 										</div>
 
-										{/* Name and categories */}
 										<div className="min-w-0 flex-1">
 											<span className="text-sm font-medium truncate block">
 												{establishment.name}
@@ -97,13 +93,12 @@ export function EstablishmentsList({
 										</div>
 									</div>
 
-									{/* Value and stats */}
-									<div className="flex shrink-0 flex-col items-end gap-0.5">
+									<div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
 										<MoneyValues
-											className="text-foreground"
+											className="text-foreground text-sm sm:text-base"
 											amount={establishment.totalAmount}
 										/>
-										<span className="text-xs text-muted-foreground">
+										<span className="text-xs text-muted-foreground whitespace-nowrap">
 											{establishment.count}x • Média:{" "}
 											<MoneyValues
 												className="text-xs"
@@ -113,8 +108,7 @@ export function EstablishmentsList({
 									</div>
 								</div>
 
-								{/* Progress bar */}
-								<div className="ml-12 mt-1.5">
+								<div className="ml-10 sm:ml-11 mt-1.5">
 									<Progress
 										className="h-1.5"
 										value={(establishment.count / maxCount) * 100}

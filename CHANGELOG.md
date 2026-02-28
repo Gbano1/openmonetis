@@ -5,6 +5,29 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.5] - 2026-02-24
+
+### Adicionado
+
+- **Categorias por Receitas e Categorias por Despesas:** botão "Ver mais" nos widgets da dashboard (mantém o período ao navegar)
+- Páginas **/categorias-receitas** e **/categorias-despesas** com gráfico (barras ou pizza), lista detalhada por categoria e seletor de mês (MonthNavigation)
+- Toggle **Barras / Pizza** no gráfico: barras horizontais (categorias à esquerda, valores à direita) ou gráfico de pizza (donut) com animação ao abrir
+- Gráficos de categorias usam as **mesmas cores das categorias** do sistema (`getCategoryColor` de `lib/utils/category-colors`)
+- Barras e fatias do gráfico **clicáveis**: ao clicar, navega para a página da categoria no período atual
+
+### Alterado
+
+- **Dashboard – Resumo das faturas do período:** valor passou a ser calculado pelo **ciclo de fechamento** de cada cartão (intervalo de `purchaseDate` com `getInvoiceDateRange`), alinhado à página da fatura e às notificações; breakdown por pagador usa o mesmo intervalo
+- **Top Estabelecimentos:** layout responsivo para mobile: grid em uma coluna no mobile, card do filtro em coluna, padding e componentes (summary, highlights, lista, categorias) ajustados para não quebrar em telas pequenas
+- **Gráfico de barras** (Categorias por Receitas/Despesas): modelo horizontal (categorias no eixo Y, nomes legíveis sem rotação); altura dinâmica por quantidade de categorias; scroll horizontal quando necessário
+- **Legenda do gráfico de pizza:** no mobile, porcentagens deixaram de aparecer em cima das fatias (evita corte) e passaram a ser exibidas **na legenda abaixo**, ao lado de cada categoria; nomes completos com quebra de linha (`break-words`) para não truncar
+
+### Corrigido
+
+- Resumo das faturas do período na dashboard exibindo valor diferente da página da fatura (agora ambos usam o mesmo critério de ciclo de fechamento)
+
+**Contribuições:** [Guilherme Bano](https://github.com/Gbano1)
+
 ## [1.6.4] - 2026-02-23
 
 ### Adicionado

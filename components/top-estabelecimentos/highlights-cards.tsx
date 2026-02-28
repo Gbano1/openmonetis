@@ -10,9 +10,9 @@ type HighlightsCardsProps = {
 
 export function HighlightsCards({ summary }: HighlightsCardsProps) {
 	return (
-		<div className="grid gap-3 sm:grid-cols-2">
-			<Card className="bg-linear-to-br from-violet-50 to-violet-50/50 dark:from-violet-950/20 dark:to-violet-950/10">
-				<CardContent className="p-4">
+		<div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+			<Card className="min-w-0 bg-linear-to-br from-violet-50 to-violet-50/50 dark:from-violet-950/20 dark:to-violet-950/10">
+				<CardContent className="p-3 sm:p-4">
 					<div className="flex items-center gap-3">
 						<div className="flex items-center justify-center size-10 rounded-xl bg-violet-100 dark:bg-violet-900/40">
 							<RiTrophyLine className="size-5 text-violet-600 dark:text-violet-400" />
@@ -29,8 +29,8 @@ export function HighlightsCards({ summary }: HighlightsCardsProps) {
 				</CardContent>
 			</Card>
 
-			<Card className="bg-linear-to-br from-red-50 to-rose-50/50 dark:from-red-950/20 dark:to-rose-950/10">
-				<CardContent className="p-4">
+			<Card className="min-w-0 bg-linear-to-br from-red-50 to-rose-50/50 dark:from-red-950/20 dark:to-rose-950/10">
+				<CardContent className="p-3 sm:p-4">
 					<div className="flex items-center gap-3">
 						<div className="flex items-center justify-center size-10 rounded-xl bg-red-100 dark:bg-red-900/40">
 							<RiFireLine className="size-5 text-red-600 dark:text-red-400" />

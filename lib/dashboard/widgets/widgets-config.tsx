@@ -18,6 +18,7 @@ import {
 } from "@remixicon/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { formatPeriodForUrl } from "@/lib/utils/period";
 import { BoletosWidget } from "@/components/dashboard/boletos-widget";
 import { ExpensesByCategoryWidgetWithChart } from "@/components/dashboard/expenses-by-category-widget-with-chart";
 import { IncomeByCategoryWidgetWithChart } from "@/components/dashboard/income-by-category-widget-with-chart";
@@ -42,7 +43,7 @@ export type WidgetConfig = {
 	subtitle: string;
 	icon: ReactNode;
 	component: (props: { data: DashboardData; period: string }) => ReactNode;
-	action?: ReactNode;
+	action?: ReactNode | ((props: { period: string }) => ReactNode);
 };
 
 export const widgetsConfig: WidgetConfig[] = [
@@ -217,6 +218,15 @@ export const widgetsConfig: WidgetConfig[] = [
 				period={period}
 			/>
 		),
+		action: ({ period }) => (
+			<Link
+				href={`/categorias-receitas?periodo=${formatPeriodForUrl(period)}`}
+				className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+			>
+				Ver mais
+				<RiArrowRightLine className="size-4" />
+			</Link>
+		),
 	},
 	{
 		id: "expenses-by-category",
@@ -228,6 +238,15 @@ export const widgetsConfig: WidgetConfig[] = [
 				data={data.expensesByCategoryData}
 				period={period}
 			/>
+		),
+		action: ({ period }) => (
+			<Link
+				href={`/categorias-despesas?periodo=${formatPeriodForUrl(period)}`}
+				className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+			>
+				Ver mais
+				<RiArrowRightLine className="size-4" />
+			</Link>
 		),
 	},
 ];

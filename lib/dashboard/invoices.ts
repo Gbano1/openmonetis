@@ -1,4 +1,4 @@
-import { and, eq, ilike, isNotNull, sql } from "drizzle-orm";
+import { and, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import { cartoes, faturas, lancamentos, pagadores } from "@/db/schema";
 import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
 import { toNumber } from "@/lib/dashboard/common";
@@ -8,6 +8,7 @@ import {
 	INVOICE_STATUS_VALUES,
 	type InvoicePaymentStatus,
 } from "@/lib/faturas";
+import { getInvoiceDateRange } from "@/lib/utils/period";
 
 type RawDashboardInvoice = {
 	invoiceId: string | null;
@@ -123,97 +124,112 @@ export async function fetchDashboardInvoices(
 		}
 	}
 
-	const [rows, breakdownRows] = await Promise.all([
-		db
-			.select({
-				invoiceId: faturas.id,
-				cardId: cartoes.id,
-				cardName: cartoes.name,
-				logo: cartoes.logo,
-				dueDay: cartoes.dueDay,
-				period: faturas.period,
-				paymentStatus: faturas.paymentStatus,
-				invoiceCreatedAt: faturas.createdAt,
-				totalAmount: sql<number | null>`
-        COALESCE(SUM(${lancamentos.amount}), 0)
-      `,
-				transactionCount: sql<number | null>`COUNT(${lancamentos.id})`,
-			})
-			.from(cartoes)
-			.leftJoin(
-				faturas,
-				and(
-					eq(faturas.cartaoId, cartoes.id),
-					eq(faturas.userId, userId),
-					eq(faturas.period, period),
-				),
-			)
-			.leftJoin(
-				lancamentos,
-				and(
-					eq(lancamentos.cartaoId, cartoes.id),
-					eq(lancamentos.userId, userId),
-					eq(lancamentos.period, period),
-				),
-			)
-			.where(eq(cartoes.userId, userId))
-			.groupBy(
-				faturas.id,
-				cartoes.id,
-				cartoes.name,
-				cartoes.brand,
-				cartoes.status,
-				cartoes.logo,
-				cartoes.dueDay,
-				faturas.period,
-				faturas.paymentStatus,
+	// Lista de cartões com status da fatura do período (total da fatura por ciclo de fechamento)
+	const cardRows = await db
+		.select({
+			invoiceId: faturas.id,
+			cardId: cartoes.id,
+			cardName: cartoes.name,
+			cardBrand: cartoes.brand,
+			cardStatus: cartoes.status,
+			logo: cartoes.logo,
+			dueDay: cartoes.dueDay,
+			closingDay: cartoes.closingDay,
+			period: faturas.period,
+			paymentStatus: faturas.paymentStatus,
+			invoiceCreatedAt: faturas.createdAt,
+		})
+		.from(cartoes)
+		.leftJoin(
+			faturas,
+			and(
+				eq(faturas.cartaoId, cartoes.id),
+				eq(faturas.userId, userId),
+				eq(faturas.period, period),
 			),
-		db
-			.select({
-				cardId: lancamentos.cartaoId,
-				period: lancamentos.period,
-				pagadorId: lancamentos.pagadorId,
-				pagadorName: pagadores.name,
-				pagadorAvatar: pagadores.avatarUrl,
-				amount: sql<number>`coalesce(sum(${lancamentos.amount}), 0)`,
-			})
-			.from(lancamentos)
-			.leftJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
-			.where(
-				and(
-					eq(lancamentos.userId, userId),
-					eq(lancamentos.period, period),
-					isNotNull(lancamentos.cartaoId),
-				),
-			)
-			.groupBy(
-				lancamentos.cartaoId,
-				lancamentos.period,
-				lancamentos.pagadorId,
-				pagadores.name,
-				pagadores.avatarUrl,
-			),
-	]);
+		)
+		.where(eq(cartoes.userId, userId));
 
+	const rows: RawDashboardInvoice[] = [];
 	const breakdownMap = new Map<string, InvoicePagadorBreakdown[]>();
-	for (const row of breakdownRows) {
-		if (!row.cardId) {
-			continue;
-		}
-		const resolvedPeriod = row.period ?? period;
-		const amount = Math.abs(toNumber(row.amount));
-		if (amount <= 0) {
-			continue;
-		}
-		const key = `${row.cardId}:${resolvedPeriod}`;
-		const current = breakdownMap.get(key) ?? [];
-		current.push({
-			pagadorId: row.pagadorId ?? null,
-			pagadorName: row.pagadorName?.trim() || "Sem pagador",
-			pagadorAvatar: row.pagadorAvatar ?? null,
-			amount,
+
+	for (const card of cardRows) {
+		const closingDayNum = Math.min(
+			31,
+			Math.max(1, Number.parseInt(card.closingDay ?? "1", 10) || 1),
+		);
+		const { start: invoiceStart, end: invoiceEnd } = getInvoiceDateRange(
+			period,
+			closingDayNum,
+		);
+
+		const [totalRow, breakdownRowsForCard] = await Promise.all([
+			db
+				.select({
+					totalAmount: sql<number>`COALESCE(SUM(${lancamentos.amount}), 0)`,
+					transactionCount: sql<number>`COUNT(${lancamentos.id})`,
+				})
+				.from(lancamentos)
+				.where(
+					and(
+						eq(lancamentos.userId, userId),
+						eq(lancamentos.cartaoId, card.cardId),
+						gte(lancamentos.purchaseDate, invoiceStart),
+						lte(lancamentos.purchaseDate, invoiceEnd),
+					),
+				),
+			db
+				.select({
+					pagadorId: lancamentos.pagadorId,
+					pagadorName: pagadores.name,
+					pagadorAvatar: pagadores.avatarUrl,
+					amount: sql<number>`coalesce(sum(${lancamentos.amount}), 0)`,
+				})
+				.from(lancamentos)
+				.leftJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
+				.where(
+					and(
+						eq(lancamentos.userId, userId),
+						eq(lancamentos.cartaoId, card.cardId),
+						gte(lancamentos.purchaseDate, invoiceStart),
+						lte(lancamentos.purchaseDate, invoiceEnd),
+					),
+				)
+				.groupBy(
+					lancamentos.pagadorId,
+					pagadores.name,
+					pagadores.avatarUrl,
+				),
+		]);
+
+		const totalAmount = toNumber(totalRow[0]?.totalAmount ?? 0);
+		const transactionCount = toNumber(totalRow[0]?.transactionCount ?? 0);
+
+		rows.push({
+			invoiceId: card.invoiceId,
+			cardId: card.cardId,
+			cardName: card.cardName,
+			cardBrand: card.cardBrand,
+			cardStatus: card.cardStatus,
+			logo: card.logo,
+			dueDay: card.dueDay,
+			period: card.period ?? period,
+			paymentStatus: card.paymentStatus,
+			invoiceCreatedAt: card.invoiceCreatedAt,
+			totalAmount,
+			transactionCount,
 		});
-		breakdownMap.set(key, current);
+
+		const key = `${card.cardId}:${card.period ?? period}`;
+		const breakdown: InvoicePagadorBreakdown[] = breakdownRowsForCard
+			.filter((r) => Math.abs(toNumber(r.amount)) > 0)
+			.map((r) => ({
+				pagadorId: r.pagadorId ?? null,
+				pagadorName: r.pagadorName?.trim() || "Sem pagador",
+				pagadorAvatar: r.pagadorAvatar ?? null,
+				amount: Math.abs(toNumber(r.amount)),
+			}));
+		breakdownMap.set(key, breakdown.sort((a, b) => b.amount - a.amount));
 	}
 
 	const invoices = rows

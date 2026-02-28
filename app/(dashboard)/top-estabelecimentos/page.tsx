@@ -52,7 +52,7 @@ export default async function TopEstabelecimentosPage({
 
 	return (
 		<main className="flex flex-col gap-4">
-			<Card className="p-3 flex-row justify-between items-center">
+			<Card className="flex flex-col gap-3 p-4 sm:flex-row sm:justify-between sm:items-center">
 				<span className="text-sm text-muted-foreground">
 					Selecione o intervalo de meses
 				</span>
@@ -63,11 +63,11 @@ export default async function TopEstabelecimentosPage({
 
 			<HighlightsCards summary={data.summary} />
 
-			<div className="grid grid-cols-2 gap-4">
-				<div>
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+				<div className="min-w-0">
 					<EstablishmentsList establishments={data.establishments} />
 				</div>
-				<div>
+				<div className="min-w-0">
 					<TopCategories categories={data.topCategories} />
 				</div>
 			</div>

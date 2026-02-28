@@ -1,7 +1,23 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { ChangelogVersion } from "@/lib/changelog/parse-changelog";
+
+/** Converte **texto** em negrito no conteúdo do item do changelog */
+function renderItemContent(text: string) {
+	const segments = text.split(/(\*\*[^*]+\*\*)/g);
+	return segments.map((seg, i) => {
+		if (seg.startsWith("**") && seg.endsWith("**")) {
+			return (
+				<strong key={i} className="font-semibold text-foreground">
+					{seg.slice(2, -2)}
+				</strong>
+			);
+		}
+		return <Fragment key={i}>{seg}</Fragment>;
+	});
+}
 
 /** Converte "[texto](url)" em link; texto simples fica como está */
 function parseContributorLine(content: string) {
@@ -50,7 +66,7 @@ export function ChangelogTab({ versions }: { versions: ChangelogVersion[] }) {
 									{section.items.map((item) => (
 										<li key={item} className="flex gap-2">
 											<span className="text-primary select-none">&bull;</span>
-											<span className="text-sm">{item}</span>
+											<span className="text-sm">{renderItemContent(item)}</span>
 										</li>
 									))}
 								</ul>

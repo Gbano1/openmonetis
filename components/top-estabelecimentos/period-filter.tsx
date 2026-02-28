@@ -26,23 +26,21 @@ export function PeriodFilterButtons({ currentFilter }: PeriodFilterProps) {
 	};
 
 	return (
-		<div className="flex items-center gap-2">
-			<div className="flex items-center gap-1">
-				{filterOptions.map((option) => (
-					<Button
-						key={option.value}
-						variant={currentFilter === option.value ? "default" : "outline"}
-						size="sm"
-						onClick={() => handleFilterChange(option.value)}
-						className={cn(
-							"h-8",
-							currentFilter === option.value && "pointer-events-none",
-						)}
-					>
-						{option.label}
-					</Button>
-				))}
-			</div>
+		<div className="flex flex-wrap items-center gap-2">
+			{filterOptions.map((option) => (
+				<Button
+					key={option.value}
+					variant={currentFilter === option.value ? "default" : "outline"}
+					size="sm"
+					onClick={() => handleFilterChange(option.value)}
+					className={cn(
+						"h-8 min-w-0 shrink-0",
+						currentFilter === option.value && "pointer-events-none",
+					)}
+				>
+					{option.label}
+				</Button>
+			))}
 		</div>
 	);
 }

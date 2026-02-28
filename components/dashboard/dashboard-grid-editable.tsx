@@ -270,7 +270,11 @@ export function DashboardGridEditable({
 										title={widget.title}
 										subtitle={widget.subtitle}
 										icon={widget.icon}
-										action={widget.action}
+										action={
+											typeof widget.action === "function"
+												? widget.action({ period })
+												: widget.action
+										}
 									>
 										{widget.component({ data, period })}
 									</WidgetCard>
