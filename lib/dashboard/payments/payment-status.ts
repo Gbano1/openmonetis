@@ -1,9 +1,10 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { lancamentos } from "@/db/schema";
 import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
 import { toNumber } from "@/lib/dashboard/common";
 import { db } from "@/lib/db";
 import { getAdminPagadorId } from "@/lib/pagadores/get-admin-id";
+import { fetchExpenseRowsForPeriods } from "@/lib/dashboard/expense-rows-for-period";
 
 export type PaymentStatusCategory = {
 	total: number;
@@ -31,10 +32,9 @@ export async function fetchPaymentStatus(
 		return { income: emptyCategory(), expenses: emptyCategory() };
 	}
 
-	// Single query: GROUP BY transactionType instead of 2 separate queries
-	const rows = await db
+	// Receita: continua por period do lançamento
+	const incomeRows = await db
 		.select({
-			transactionType: lancamentos.transactionType,
 			confirmed: sql<number>`
 				coalesce(
 					sum(case when ${lancamentos.isSettled} = true then ${lancamentos.amount} else 0 end),
@@ -54,29 +54,44 @@ export async function fetchPaymentStatus(
 				eq(lancamentos.userId, userId),
 				eq(lancamentos.period, period),
 				eq(lancamentos.pagadorId, adminPagadorId),
-				inArray(lancamentos.transactionType, ["Receita", "Despesa"]),
+				eq(lancamentos.transactionType, "Receita"),
 				sql`(${lancamentos.note} IS NULL OR ${lancamentos.note} NOT LIKE ${`${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`})`,
 			),
-		)
-		.groupBy(lancamentos.transactionType);
+		);
 
-	const result = { income: emptyCategory(), expenses: emptyCategory() };
+	// Despesa: mesma regra do metrics (cartão pelo ciclo de fechamento)
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, [period], {
+		adminOnly: true,
+	});
+	const expenseRows = rowsByPeriod.get(period) ?? [];
 
-	for (const row of rows) {
-		const confirmed = toNumber(row.confirmed);
-		const pending = toNumber(row.pending);
-		const category = {
-			total: confirmed + pending,
-			confirmed,
-			pending,
-		};
+	let incomeConfirmed = 0;
+	let incomePending = 0;
+	if (incomeRows[0]) {
+		incomeConfirmed = toNumber(incomeRows[0].confirmed);
+		incomePending = toNumber(incomeRows[0].pending);
+	}
 
-		if (row.transactionType === "Receita") {
-			result.income = category;
-		} else if (row.transactionType === "Despesa") {
-			result.expenses = category;
+	let expenseConfirmed = 0;
+	let expensePending = 0;
+	for (const row of expenseRows) {
+		if (row.isSettled === true) {
+			expenseConfirmed += row.amount;
+		} else {
+			expensePending += row.amount;
 		}
 	}
 
-	return result;
+	return {
+		income: {
+			total: incomeConfirmed + incomePending,
+			confirmed: incomeConfirmed,
+			pending: incomePending,
+		},
+		expenses: {
+			total: expenseConfirmed + expensePending,
+			confirmed: expenseConfirmed,
+			pending: expensePending,
+		},
+	};
 }

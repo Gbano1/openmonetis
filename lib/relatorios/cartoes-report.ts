@@ -1,17 +1,10 @@
-import { and, eq, gte, ilike, inArray, lte, ne, not, or, sql, sum } from "drizzle-orm";
-import {
-	cartoes,
-	categorias,
-	faturas,
-	lancamentos,
-	pagadores,
-} from "@/db/schema";
+import { and, eq, gte, ilike, inArray, lte, not } from "drizzle-orm";
+import { cartoes, categorias, faturas } from "@/db/schema";
+import { fetchExpenseRowsForPeriods } from "@/lib/dashboard/expense-rows-for-period";
+import { parsePurchaseDate } from "@/lib/dashboard/expense-period-logic";
 import { db } from "@/lib/db";
-import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";
 import { safeToNumber } from "@/lib/utils/number";
 import { getPreviousPeriod } from "@/lib/utils/period";
-
-const DESPESA = "Despesa";
 
 export type CardSummary = {
 	id: string;
@@ -97,66 +90,26 @@ export async function fetchCartoesReportData(
 
 	const cardIds = allCards.map((c) => c.id);
 
-	// Fetch current period usage by card (recorrente só conta quando a data da ocorrência já passou)
-	const currentUsageData = await db
-		.select({
-			cartaoId: lancamentos.cartaoId,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.innerJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.period, currentPeriod),
-				eq(pagadores.role, PAGADOR_ROLE_ADMIN),
-				eq(lancamentos.transactionType, DESPESA),
-				inArray(lancamentos.cartaoId, cardIds),
-				or(
-					ne(lancamentos.condition, "Recorrente"),
-					sql`${lancamentos.purchaseDate} <= current_date`,
-				),
-			),
-		)
-		.groupBy(lancamentos.cartaoId);
+	// Uso por cartão pelo ciclo de fatura (data de compra no intervalo de fechamento), não por period
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, [
+		currentPeriod,
+		previousPeriod,
+	], { adminOnly: true });
 
-	// Fetch previous period usage by card
-	const previousUsageData = await db
-		.select({
-			cartaoId: lancamentos.cartaoId,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.innerJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.period, previousPeriod),
-				eq(pagadores.role, PAGADOR_ROLE_ADMIN),
-				eq(lancamentos.transactionType, DESPESA),
-				inArray(lancamentos.cartaoId, cardIds),
-			),
-		)
-		.groupBy(lancamentos.cartaoId);
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
 
 	const currentUsageMap = new Map<string, number>();
-	for (const row of currentUsageData) {
-		if (row.cartaoId) {
-			currentUsageMap.set(
-				row.cartaoId,
-				Math.abs(safeToNumber(row.totalAmount)),
-			);
-		}
+	for (const row of rowsByPeriod.get(currentPeriod) ?? []) {
+		if (!row.cartaoId || !cardIds.includes(row.cartaoId)) continue;
+		if (row.condition === "Recorrente" && parsePurchaseDate(row.purchaseDate).getTime() > today.getTime()) continue;
+		currentUsageMap.set(row.cartaoId, (currentUsageMap.get(row.cartaoId) ?? 0) + row.amount);
 	}
 
 	const previousUsageMap = new Map<string, number>();
-	for (const row of previousUsageData) {
-		if (row.cartaoId) {
-			previousUsageMap.set(
-				row.cartaoId,
-				Math.abs(safeToNumber(row.totalAmount)),
-			);
-		}
+	for (const row of rowsByPeriod.get(previousPeriod) ?? []) {
+		if (!row.cartaoId || !cardIds.includes(row.cartaoId)) continue;
+		previousUsageMap.set(row.cartaoId, (previousUsageMap.get(row.cartaoId) ?? 0) + row.amount);
 	}
 
 	// Build card summaries
@@ -233,7 +186,7 @@ async function fetchCardDetail(
 	cardSummary: CardSummary,
 	currentPeriod: string,
 ): Promise<CardDetailData> {
-	// Build period range for last 12 months
+	// Últimos 12 meses para gráfico e fatura; uso por ciclo de fatura do cartão
 	const periods: string[] = [];
 	let p = currentPeriod;
 	for (let i = 0; i < 12; i++) {
@@ -244,74 +197,42 @@ async function fetchCardDetail(
 	const startPeriod = periods[0];
 
 	const monthLabels = [
-		"Jan",
-		"Fev",
-		"Mar",
-		"Abr",
-		"Mai",
-		"Jun",
-		"Jul",
-		"Ago",
-		"Set",
-		"Out",
-		"Nov",
-		"Dez",
+		"Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+		"Jul", "Ago", "Set", "Out", "Nov", "Dez",
 	];
 
-	// Fetch monthly usage
-	const monthlyData = await db
-		.select({
-			period: lancamentos.period,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.innerJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.cartaoId, cardId),
-				gte(lancamentos.period, startPeriod),
-				lte(lancamentos.period, currentPeriod),
-				eq(pagadores.role, PAGADOR_ROLE_ADMIN),
-				eq(lancamentos.transactionType, DESPESA),
-			),
-		)
-		.groupBy(lancamentos.period)
-		.orderBy(lancamentos.period);
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, periods, {
+		adminOnly: true,
+	});
 
+	// Uso mensal por período (ciclo do cartão)
 	const monthlyUsage = periods.map((period) => {
-		const data = monthlyData.find((d) => d.period === period);
+		const rows = (rowsByPeriod.get(period) ?? []).filter(
+			(row) => row.cartaoId === cardId,
+		);
+		const amount = rows.reduce((s, r) => s + r.amount, 0);
 		const [year, month] = period.split("-");
 		return {
 			period,
 			periodLabel: `${monthLabels[parseInt(month, 10) - 1]}/${year.slice(2)}`,
-			amount: Math.abs(safeToNumber(data?.totalAmount)),
+			amount,
 		};
 	});
 
-	// Fetch category breakdown for current period
-	const categoryData = await db
-		.select({
-			categoriaId: lancamentos.categoriaId,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.innerJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.cartaoId, cardId),
-				eq(lancamentos.period, currentPeriod),
-				eq(pagadores.role, PAGADOR_ROLE_ADMIN),
-				eq(lancamentos.transactionType, DESPESA),
-			),
-		)
-		.groupBy(lancamentos.categoriaId);
+	// Despesas do período atual (ciclo) para este cartão
+	const currentRows = (rowsByPeriod.get(currentPeriod) ?? []).filter(
+		(row) => row.cartaoId === cardId,
+	);
 
-	// Fetch category names
-	const categoryIds = categoryData
-		.map((c) => c.categoriaId)
-		.filter((id): id is string => id !== null);
+	// Agrupar por categoria
+	const byCategoria = new Map<string, number>();
+	for (const row of currentRows) {
+		const id = row.categoriaId ?? "sem-categoria";
+		byCategoria.set(id, (byCategoria.get(id) ?? 0) + row.amount);
+	}
+
+	const totalCategoryAmount = currentRows.reduce((s, r) => s + r.amount, 0);
+	const categoryIds = [...byCategoria.keys()].filter((id) => id !== "sem-categoria");
 
 	const categoryNames =
 		categoryIds.length > 0
@@ -327,68 +248,38 @@ async function fetchCardDetail(
 
 	const categoryNameMap = new Map(categoryNames.map((c) => [c.id, c]));
 
-	const totalCategoryAmount = categoryData.reduce(
-		(acc, c) => acc + Math.abs(safeToNumber(c.totalAmount)),
-		0,
-	);
-
-	const categoryBreakdown = categoryData
-		.map((cat) => {
-			const amount = Math.abs(safeToNumber(cat.totalAmount));
-			const catInfo = cat.categoriaId
-				? categoryNameMap.get(cat.categoriaId)
-				: null;
-			return {
-				id: cat.categoriaId || "sem-categoria",
-				name: catInfo?.name || "Sem categoria",
-				icon: catInfo?.icon || null,
-				amount,
-				percent:
-					totalCategoryAmount > 0 ? (amount / totalCategoryAmount) * 100 : 0,
-			};
-		})
+	const categoryBreakdown = [...byCategoria.entries()]
+		.map(([id, amount]) => ({
+			id,
+			name: id === "sem-categoria" ? "Sem categoria" : (categoryNameMap.get(id)?.name ?? "Sem categoria"),
+			icon: id === "sem-categoria" ? null : (categoryNameMap.get(id)?.icon ?? null),
+			amount,
+			percent: totalCategoryAmount > 0 ? (amount / totalCategoryAmount) * 100 : 0,
+		}))
 		.sort((a, b) => b.amount - a.amount)
 		.slice(0, 10);
 
-	// Fetch top expenses for current period
-	const topExpensesData = await db
-		.select({
-			id: lancamentos.id,
-			name: lancamentos.name,
-			amount: lancamentos.amount,
-			purchaseDate: lancamentos.purchaseDate,
-			categoriaId: lancamentos.categoriaId,
-		})
-		.from(lancamentos)
-		.innerJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.cartaoId, cardId),
-				eq(lancamentos.period, currentPeriod),
-				eq(pagadores.role, PAGADOR_ROLE_ADMIN),
-				eq(lancamentos.transactionType, DESPESA),
-			),
-		)
-		.orderBy(lancamentos.amount)
-		.limit(10);
+	// Top 10 despesas (maiores valores primeiro)
+	const topExpenses = [...currentRows]
+		.sort((a, b) => b.amount - a.amount)
+		.slice(0, 10)
+		.map((row) => {
+			const catInfo = row.categoriaId ? categoryNameMap.get(row.categoriaId) : null;
+			return {
+				id: row.id,
+				name: row.name ?? "",
+				amount: row.amount,
+				date: row.purchaseDate
+					? (typeof row.purchaseDate === "string"
+						? new Date(row.purchaseDate)
+						: row.purchaseDate
+					).toLocaleDateString("pt-BR")
+					: "",
+				category: catInfo?.name ?? null,
+			};
+		});
 
-	const topExpenses = topExpensesData.map((expense) => {
-		const catInfo = expense.categoriaId
-			? categoryNameMap.get(expense.categoriaId)
-			: null;
-		return {
-			id: expense.id,
-			name: expense.name,
-			amount: Math.abs(safeToNumber(expense.amount)),
-			date: expense.purchaseDate
-				? new Date(expense.purchaseDate).toLocaleDateString("pt-BR")
-				: "",
-			category: catInfo?.name || null,
-		};
-	});
-
-	// Fetch invoice status for last 6 months
+	// Status das faturas; valor exibido = uso do período (já por ciclo)
 	const invoiceData = await db
 		.select({
 			period: faturas.period,
@@ -410,8 +301,8 @@ async function fetchCardDetail(
 		const usage = monthlyUsage.find((m) => m.period === period);
 		return {
 			period,
-			status: invoice?.status || null,
-			amount: usage?.amount || 0,
+			status: invoice?.status ?? null,
+			amount: usage?.amount ?? 0,
 		};
 	});
 

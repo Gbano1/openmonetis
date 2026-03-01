@@ -9,6 +9,11 @@ import {
 import { INITIAL_BALANCE_NOTE } from "@/lib/accounts/constants";
 import { db } from "@/lib/db";
 
+/**
+ * Busca lançamentos para a aba /lancamentos.
+ * Os filtros devem ser construídos com buildLancamentoWhere (apenas por mês — campo period).
+ * Esta página não usa lógica de ciclo de fatura do cartão; dashboard e relatórios usam essa lógica em outros módulos.
+ */
 export async function fetchLancamentos(filters: SQL[]) {
 	const lancamentoRows = await db
 		.select({

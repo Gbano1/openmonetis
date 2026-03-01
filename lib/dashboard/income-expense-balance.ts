@@ -7,6 +7,7 @@ import {
 import { toNumber } from "@/lib/dashboard/common";
 import { db } from "@/lib/db";
 import { getAdminPagadorId } from "@/lib/pagadores/get-admin-id";
+import { fetchExpenseRowsForPeriods } from "@/lib/dashboard/expense-rows-for-period";
 
 export type MonthData = {
 	month: string;
@@ -74,47 +75,49 @@ export async function fetchIncomeExpenseBalance(
 
 	const periods = generateLast6Months(currentPeriod);
 
-	// Single query: GROUP BY period + transactionType instead of 12 separate queries
-	const rows = await db
-		.select({
-			period: lancamentos.period,
-			transactionType: lancamentos.transactionType,
-			total: sql<number>`coalesce(sum(${lancamentos.amount}), 0)`,
-		})
-		.from(lancamentos)
-		.leftJoin(contas, eq(lancamentos.contaId, contas.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.pagadorId, adminPagadorId),
-				inArray(lancamentos.period, periods),
-				inArray(lancamentos.transactionType, ["Receita", "Despesa"]),
-				sql`(${lancamentos.note} IS NULL OR ${lancamentos.note} NOT LIKE ${`${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`})`,
-				// Excluir saldos iniciais se a conta tiver o flag ativo
-				or(
-					ne(lancamentos.note, INITIAL_BALANCE_NOTE),
-					isNull(contas.excludeInitialBalanceFromIncome),
-					eq(contas.excludeInitialBalanceFromIncome, false),
+	// Receita: por period do lançamento
+	const [receitaRows, { rowsByPeriod }] = await Promise.all([
+		db
+			.select({
+				period: lancamentos.period,
+				total: sql<number>`coalesce(sum(${lancamentos.amount}), 0)`,
+			})
+			.from(lancamentos)
+			.leftJoin(contas, eq(lancamentos.contaId, contas.id))
+			.where(
+				and(
+					eq(lancamentos.userId, userId),
+					eq(lancamentos.pagadorId, adminPagadorId),
+					inArray(lancamentos.period, periods),
+					eq(lancamentos.transactionType, "Receita"),
+					sql`(${lancamentos.note} IS NULL OR ${lancamentos.note} NOT LIKE ${`${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`})`,
+					or(
+						ne(lancamentos.note, INITIAL_BALANCE_NOTE),
+						isNull(contas.excludeInitialBalanceFromIncome),
+						eq(contas.excludeInitialBalanceFromIncome, false),
+					),
 				),
-			),
-		)
-		.groupBy(lancamentos.period, lancamentos.transactionType);
+			)
+			.groupBy(lancamentos.period),
+		fetchExpenseRowsForPeriods(userId, periods, { adminOnly: true }),
+	]);
 
-	// Build lookup from query results
 	const dataMap = new Map<string, { income: number; expense: number }>();
-	for (const row of rows) {
+	for (const p of periods) {
+		dataMap.set(p, { income: 0, expense: 0 });
+	}
+	for (const row of receitaRows) {
 		if (!row.period) continue;
-		const entry = dataMap.get(row.period) ?? { income: 0, expense: 0 };
-		const total = Math.abs(toNumber(row.total));
-		if (row.transactionType === "Receita") {
-			entry.income = total;
-		} else if (row.transactionType === "Despesa") {
-			entry.expense = total;
-		}
-		dataMap.set(row.period, entry);
+		const entry = dataMap.get(row.period);
+		if (entry) entry.income = Math.abs(toNumber(row.total));
+	}
+	for (const p of periods) {
+		const rows = rowsByPeriod.get(p) ?? [];
+		const expense = rows.reduce((s, r) => s + r.amount, 0);
+		const entry = dataMap.get(p);
+		if (entry) entry.expense = expense;
 	}
 
-	// Build result array preserving period order
 	const months = periods.map((period) => {
 		const entry = dataMap.get(period) ?? { income: 0, expense: 0 };
 		const [, monthPart] = period.split("-");

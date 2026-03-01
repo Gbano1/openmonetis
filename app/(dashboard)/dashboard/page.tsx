@@ -42,7 +42,7 @@ export default async function Page({ searchParams }: PageProps) {
 				disableMagnetlines={disableMagnetlines}
 			/>
 			<MonthNavigation />
-			<SectionCards metrics={data.metrics} />
+			<SectionCards metrics={data.metrics} period={selectedPeriod} />
 			<DashboardGridEditable
 				data={data}
 				period={selectedPeriod}

@@ -295,6 +295,12 @@ const isValidPaymentMethod = (
 const buildSearchPattern = (value: string | null) =>
 	value ? `%${value.trim().replace(/\s+/g, "%")}%` : null;
 
+/**
+ * Filtro para lista de lançamentos por mês (campo period).
+ * Usado pela aba /lancamentos e por listagens de conta/pagador.
+ * Filtra apenas por eq(lancamentos.period, period) — não usa ciclo de fatura do cartão.
+ * Para fatura de cartão (datas de compra no ciclo), use buildLancamentoWhereForInvoice.
+ */
 export const buildLancamentoWhere = ({
 	userId,
 	period,

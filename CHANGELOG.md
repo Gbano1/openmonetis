@@ -5,6 +5,20 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.6] - 2026-02-18
+
+### Alterado
+
+- **Aba /lancamentos:** filtro independente da lógica de ciclo do cartão; lista e totais usam apenas o **mês** (campo `period`). Documentação em `buildLancamentoWhere`, `fetchLancamentos` e página deixando explícito que esta aba não usa ciclo de fatura (dashboard e relatórios usam em outros módulos)
+- **Aba /relatorios/uso-cartoes:** uso dos cartões passou a ser calculado pelo **ciclo de fechamento** de cada cartão (data de compra no intervalo da fatura), via `fetchExpenseRowsForPeriods`; resumo dos cartões, gráfico mensal, por categoria, maiores despesas e valor exibido no status da fatura alinhados ao critério do dashboard
+- **Despesas por período (`expense-rows-for-period`):** tipo `RawExpenseRow` e query passaram a incluir o campo `name` para permitir montar "Maiores despesas" nos relatórios (ex.: uso de cartões) sem consulta extra
+
+### Corrigido
+
+- Relatório de uso de cartões contando despesas apenas pelo mês do lançamento (`period`); agora considera o ciclo de fechamento de cada cartão, igual ao restante do sistema
+
+**Contribuições:** [Guilherme Bano](https://github.com/Gbano1)
+
 ## [1.6.5] - 2026-02-24
 
 ### Adicionado

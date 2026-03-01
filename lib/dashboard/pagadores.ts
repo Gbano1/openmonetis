@@ -1,9 +1,8 @@
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
-import { lancamentos, pagadores } from "@/db/schema";
-import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
-import { toNumber } from "@/lib/dashboard/common";
+import { inArray } from "drizzle-orm";
+import { pagadores } from "@/db/schema";
 import { db } from "@/lib/db";
 import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";
+import { fetchExpenseRowsForPeriods } from "@/lib/dashboard/expense-rows-for-period";
 
 export type DashboardPagador = {
 	id: string;
@@ -23,55 +22,53 @@ export async function fetchDashboardPagadores(
 	userId: string,
 	period: string,
 ): Promise<DashboardPagadoresSnapshot> {
-	const rows = await db
-		.select({
-			id: pagadores.id,
-			name: pagadores.name,
-			email: pagadores.email,
-			avatarUrl: pagadores.avatarUrl,
-			role: pagadores.role,
-			totalExpenses: sql<number>`COALESCE(SUM(ABS(${lancamentos.amount})), 0)`,
-		})
-		.from(lancamentos)
-		.innerJoin(pagadores, eq(lancamentos.pagadorId, pagadores.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.period, period),
-				eq(lancamentos.transactionType, "Despesa"),
-				or(
-					isNull(lancamentos.note),
-					sql`${lancamentos.note} NOT LIKE ${`${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`}`,
-				),
-			),
-		)
-		.groupBy(
-			pagadores.id,
-			pagadores.name,
-			pagadores.email,
-			pagadores.avatarUrl,
-			pagadores.role,
-		)
-		.orderBy(desc(sql`SUM(ABS(${lancamentos.amount}))`));
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, [period], {
+		adminOnly: false,
+	});
+	const rows = rowsByPeriod.get(period) ?? [];
 
-	const pagadoresList = rows
-		.map((row) => ({
-			id: row.id,
-			name: row.name,
-			email: row.email,
-			avatarUrl: row.avatarUrl,
-			totalExpenses: toNumber(row.totalExpenses),
-			isAdmin: row.role === PAGADOR_ROLE_ADMIN,
+	const byPagador = new Map<string, number>();
+	for (const row of rows) {
+		const id = row.pagadorId ?? "";
+		if (!id) continue;
+		byPagador.set(id, (byPagador.get(id) ?? 0) + row.amount);
+	}
+
+	const pagadorIds = Array.from(byPagador.keys()).filter((id) => (byPagador.get(id) ?? 0) > 0);
+	if (pagadorIds.length === 0) {
+		return { pagadores: [], totalExpenses: 0 };
+	}
+
+	const pagadoresList = await db.query.pagadores.findMany({
+		where: inArray(pagadores.id, pagadorIds),
+		columns: {
+			id: true,
+			name: true,
+			email: true,
+			avatarUrl: true,
+			role: true,
+		},
+	});
+
+	const pagadoresWithTotals: DashboardPagador[] = pagadoresList
+		.map((p) => ({
+			id: p.id,
+			name: p.name,
+			email: p.email,
+			avatarUrl: p.avatarUrl,
+			totalExpenses: byPagador.get(p.id) ?? 0,
+			isAdmin: p.role === PAGADOR_ROLE_ADMIN,
 		}))
-		.filter((p) => p.totalExpenses > 0);
+		.filter((p) => p.totalExpenses > 0)
+		.sort((a, b) => b.totalExpenses - a.totalExpenses);
 
-	const totalExpenses = pagadoresList.reduce(
+	const totalExpenses = pagadoresWithTotals.reduce(
 		(sum, p) => sum + p.totalExpenses,
 		0,
 	);
 
 	return {
-		pagadores: pagadoresList,
+		pagadores: pagadoresWithTotals,
 		totalExpenses,
 	};
 }

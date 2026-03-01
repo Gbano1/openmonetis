@@ -1,17 +1,5 @@
-import {
-	and,
-	asc,
-	eq,
-	gte,
-	ilike,
-	isNull,
-	lte,
-	ne,
-	not,
-	or,
-	sum,
-} from "drizzle-orm";
-import { contas, lancamentos } from "@/db/schema";
+import { and, asc, eq, gte, ilike, isNull, lte, ne, not, or } from "drizzle-orm";
+import { cartoes, contas, lancamentos } from "@/db/schema";
 import {
 	ACCOUNT_AUTO_INVOICE_NOTE_PREFIX,
 	INITIAL_BALANCE_NOTE,
@@ -23,6 +11,7 @@ import {
 	addMonthsToPeriod,
 	buildPeriodRange,
 	comparePeriods,
+	getInvoiceDateRange,
 	getPreviousPeriod,
 } from "@/lib/utils/period";
 
@@ -97,46 +86,98 @@ export async function fetchDashboardCardMetrics(
 	// Limitar scan histórico a 24 meses para evitar scans progressivamente mais lentos
 	const startPeriod = addMonthsToPeriod(period, -24);
 
-	const rows = await db
-		.select({
-			period: lancamentos.period,
-			transactionType: lancamentos.transactionType,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.leftJoin(contas, eq(lancamentos.contaId, contas.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.pagadorId, adminPagadorId),
-				gte(lancamentos.period, startPeriod),
-				lte(lancamentos.period, period),
-				ne(lancamentos.transactionType, TRANSFERENCIA),
-				or(
-					isNull(lancamentos.note),
-					not(ilike(lancamentos.note, `${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`)),
-				),
-				// Excluir saldos iniciais se a conta tiver o flag ativo
-				or(
-					ne(lancamentos.note, INITIAL_BALANCE_NOTE),
-					isNull(contas.excludeInitialBalanceFromIncome),
-					eq(contas.excludeInitialBalanceFromIncome, false),
-				),
-			),
-		)
-		.groupBy(lancamentos.period, lancamentos.transactionType)
-		.orderBy(asc(lancamentos.period), asc(lancamentos.transactionType));
+	const baseWhere = and(
+		eq(lancamentos.userId, userId),
+		eq(lancamentos.pagadorId, adminPagadorId),
+		gte(lancamentos.period, startPeriod),
+		lte(lancamentos.period, period),
+		ne(lancamentos.transactionType, TRANSFERENCIA),
+		or(
+			isNull(lancamentos.note),
+			not(ilike(lancamentos.note, `${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`)),
+		),
+		or(
+			ne(lancamentos.note, INITIAL_BALANCE_NOTE),
+			isNull(contas.excludeInitialBalanceFromIncome),
+			eq(contas.excludeInitialBalanceFromIncome, false),
+		),
+	);
+
+	const [cartoesRows, rows] = await Promise.all([
+		db
+			.select({ id: cartoes.id, closingDay: cartoes.closingDay })
+			.from(cartoes)
+			.where(eq(cartoes.userId, userId)),
+		db
+			.select({
+				period: lancamentos.period,
+				transactionType: lancamentos.transactionType,
+				amount: lancamentos.amount,
+				purchaseDate: lancamentos.purchaseDate,
+				cartaoId: lancamentos.cartaoId,
+			})
+			.from(lancamentos)
+			.leftJoin(contas, eq(lancamentos.contaId, contas.id))
+			.where(baseWhere)
+			.orderBy(asc(lancamentos.period), asc(lancamentos.transactionType)),
+	]);
+
+	const cartoesMap = new Map<string, number>();
+	for (const c of cartoesRows) {
+		const day = Math.min(31, Math.max(1, Number.parseInt(c.closingDay ?? "1", 10) || 1));
+		cartoesMap.set(c.id, day);
+	}
 
 	const periodTotals = new Map<string, PeriodTotals>();
+	const allPeriodsInRange = buildPeriodRange(startPeriod, period);
+
+	for (const p of allPeriodsInRange) {
+		ensurePeriodTotals(periodTotals, p);
+	}
 
 	for (const row of rows) {
 		if (!row.period) continue;
-		const totals = ensurePeriodTotals(periodTotals, row.period);
-		const total = safeToNumber(row.totalAmount);
+		const amount = safeToNumber(row.amount);
 		if (row.transactionType === RECEITA) {
-			totals.receitas += total;
-		} else if (row.transactionType === DESPESA) {
-			totals.despesas += Math.abs(total);
+			const totals = ensurePeriodTotals(periodTotals, row.period);
+			totals.receitas += amount;
+			continue;
+		}
+		if (row.transactionType !== DESPESA) continue;
+
+		const absAmount = Math.abs(amount);
+		if (!row.cartaoId) {
+			const totals = ensurePeriodTotals(periodTotals, row.period);
+			totals.despesas += absAmount;
+			continue;
+		}
+
+		const closingDay = cartoesMap.get(row.cartaoId);
+		if (closingDay === undefined) {
+			const totals = ensurePeriodTotals(periodTotals, row.period);
+			totals.despesas += absAmount;
+			continue;
+		}
+
+		for (const p of allPeriodsInRange) {
+			const range = getInvoiceDateRange(p, closingDay);
+			const raw = row.purchaseDate;
+			const purchaseDate =
+				raw instanceof Date
+					? raw
+					: (() => {
+							const s = String(raw).slice(0, 10);
+							const [y, m, d] = s.split("-").map(Number);
+							return new Date(y, (m ?? 1) - 1, d ?? 1);
+						})();
+			const start = range.start.getTime();
+			const end = range.end.getTime();
+			const t = purchaseDate.getTime();
+			if (t >= start && t <= end) {
+				const totals = ensurePeriodTotals(periodTotals, p);
+				totals.despesas += absAmount;
+				break;
+			}
 		}
 	}
 

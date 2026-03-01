@@ -1,18 +1,7 @@
-import {
-	and,
-	asc,
-	eq,
-	gte,
-	ilike,
-	isNull,
-	lte,
-	not,
-	or,
-	sql,
-	sum,
-} from "drizzle-orm";
+import { and, asc, eq, gte, ilike, isNull, lte, not, or, sql, sum } from "drizzle-orm";
 import { cartoes, lancamentos } from "@/db/schema";
 import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
+import { fetchExpenseRowsForPeriods } from "@/lib/dashboard/expense-rows-for-period";
 import { db } from "@/lib/db";
 
 const RECEITA = "Receita";
@@ -152,46 +141,42 @@ export async function fetchPagadorMonthlyBreakdown({
 	pagadorId,
 	period,
 }: BaseFilters): Promise<PagadorMonthlyBreakdown> {
-	const rows = await db
-		.select({
-			paymentMethod: lancamentos.paymentMethod,
-			transactionType: lancamentos.transactionType,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.pagadorId, pagadorId),
-				eq(lancamentos.period, period),
-				excludeAutoInvoiceEntries(),
+	const [receitaRows, { rowsByPeriod }] = await Promise.all([
+		db
+			.select({
+				totalAmount: sum(lancamentos.amount).as("total"),
+			})
+			.from(lancamentos)
+			.where(
+				and(
+					eq(lancamentos.userId, userId),
+					eq(lancamentos.pagadorId, pagadorId),
+					eq(lancamentos.period, period),
+					eq(lancamentos.transactionType, RECEITA),
+					excludeAutoInvoiceEntries(),
+				),
 			),
-		)
-		.groupBy(lancamentos.paymentMethod, lancamentos.transactionType);
+		fetchExpenseRowsForPeriods(userId, [period], { pagadorId }),
+	]);
 
+	const expenseRows = rowsByPeriod.get(period) ?? [];
 	const paymentSplits: PagadorMonthlyBreakdown["paymentSplits"] = {
 		card: 0,
 		boleto: 0,
 		instant: 0,
 	};
 	let totalExpenses = 0;
-	let totalIncomes = 0;
-
-	for (const row of rows) {
-		const total = Math.abs(toNumber(row.totalAmount));
-		if (row.transactionType === DESPESA) {
-			totalExpenses += total;
-			if (row.paymentMethod === PAYMENT_METHOD_CARD) {
-				paymentSplits.card += total;
-			} else if (row.paymentMethod === PAYMENT_METHOD_BOLETO) {
-				paymentSplits.boleto += total;
-			} else {
-				paymentSplits.instant += total;
-			}
-		} else if (row.transactionType === RECEITA) {
-			totalIncomes += total;
+	for (const row of expenseRows) {
+		totalExpenses += row.amount;
+		if (row.paymentMethod === PAYMENT_METHOD_CARD) {
+			paymentSplits.card += row.amount;
+		} else if (row.paymentMethod === PAYMENT_METHOD_BOLETO) {
+			paymentSplits.boleto += row.amount;
+		} else {
+			paymentSplits.instant += row.amount;
 		}
 	}
+	const totalIncomes = Math.abs(toNumber(receitaRows[0]?.totalAmount ?? 0));
 
 	return {
 		totalExpenses,
@@ -210,44 +195,44 @@ export async function fetchPagadorHistory({
 	const start = window[0];
 	const end = window[window.length - 1];
 
-	const rows = await db
-		.select({
-			period: lancamentos.period,
-			transactionType: lancamentos.transactionType,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.pagadorId, pagadorId),
-				gte(lancamentos.period, start),
-				lte(lancamentos.period, end),
-				excludeAutoInvoiceEntries(),
-			),
-		)
-		.groupBy(lancamentos.period, lancamentos.transactionType);
+	const [receitaRows, { rowsByPeriod }] = await Promise.all([
+		db
+			.select({
+				period: lancamentos.period,
+				totalAmount: sum(lancamentos.amount).as("total"),
+			})
+			.from(lancamentos)
+			.where(
+				and(
+					eq(lancamentos.userId, userId),
+					eq(lancamentos.pagadorId, pagadorId),
+					gte(lancamentos.period, start),
+					lte(lancamentos.period, end),
+					eq(lancamentos.transactionType, RECEITA),
+					excludeAutoInvoiceEntries(),
+				),
+			)
+			.groupBy(lancamentos.period),
+		fetchExpenseRowsForPeriods(userId, window, { pagadorId }),
+	]);
 
 	const totalsByPeriod = new Map<
 		string,
 		{ receitas: number; despesas: number }
 	>();
-
 	for (const key of window) {
 		totalsByPeriod.set(key, { receitas: 0, despesas: 0 });
 	}
-
-	for (const row of rows) {
+	for (const row of receitaRows) {
 		const key = row.period ?? undefined;
 		if (!key || !totalsByPeriod.has(key)) continue;
-		const bucket = totalsByPeriod.get(key);
-		if (!bucket) continue;
-		const total = Math.abs(toNumber(row.totalAmount));
-		if (row.transactionType === DESPESA) {
-			bucket.despesas += total;
-		} else if (row.transactionType === RECEITA) {
-			bucket.receitas += total;
-		}
+		const bucket = totalsByPeriod.get(key)!;
+		bucket.receitas = Math.abs(toNumber(row.totalAmount));
+	}
+	for (const key of window) {
+		const rows = rowsByPeriod.get(key) ?? [];
+		const bucket = totalsByPeriod.get(key)!;
+		bucket.despesas = rows.reduce((s, r) => s + r.amount, 0);
 	}
 
 	return window.map((key) => ({
@@ -263,37 +248,33 @@ export async function fetchPagadorCardUsage({
 	pagadorId,
 	period,
 }: BaseFilters): Promise<PagadorCardUsageItem[]> {
-	const rows = await db
-		.select({
-			cartaoId: lancamentos.cartaoId,
-			cardName: cartoes.name,
-			cardLogo: cartoes.logo,
-			totalAmount: sum(lancamentos.amount).as("total"),
-		})
-		.from(lancamentos)
-		.innerJoin(cartoes, eq(lancamentos.cartaoId, cartoes.id))
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.pagadorId, pagadorId),
-				eq(lancamentos.period, period),
-				eq(lancamentos.paymentMethod, PAYMENT_METHOD_CARD),
-				excludeAutoInvoiceEntries(),
-			),
-		)
-		.groupBy(lancamentos.cartaoId, cartoes.name, cartoes.logo);
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, [period], {
+		pagadorId,
+	});
+	const rows = rowsByPeriod.get(period) ?? [];
+	const cardRows = rows.filter((r) => r.paymentMethod === PAYMENT_METHOD_CARD);
+	const byCartaoId = new Map<string, number>();
+	for (const r of cardRows) {
+		const id = r.cartaoId ?? "";
+		if (!id) continue;
+		byCartaoId.set(id, (byCartaoId.get(id) ?? 0) + r.amount);
+	}
+	const cartaoIds = Array.from(byCartaoId.keys());
+	if (cartaoIds.length === 0) return [];
 
-	return rows
-		.filter((row) => Boolean(row.cartaoId))
-		.map((row) => {
-			if (!row.cartaoId) {
-				throw new Error("cartaoId should not be null after filter");
-			}
+	const cartoesRows = await db.query.cartoes.findMany({
+		where: (t, { inArray }) => inArray(t.id, cartaoIds),
+		columns: { id: true, name: true, logo: true },
+	});
+	const byId = new Map(cartoesRows.map((c) => [c.id, c]));
+	return cartaoIds
+		.map((id) => {
+			const cartao = byId.get(id);
 			return {
-				id: row.cartaoId,
-				name: row.cardName ?? "Cartão",
-				logo: row.cardLogo ?? null,
-				amount: Math.abs(toNumber(row.totalAmount)),
+				id,
+				name: cartao?.name ?? "Cartão",
+				logo: cartao?.logo ?? null,
+				amount: byCartaoId.get(id) ?? 0,
 			};
 		})
 		.sort((a, b) => b.amount - a.amount);
@@ -389,40 +370,23 @@ export async function fetchPagadorPaymentStatus({
 	pagadorId,
 	period,
 }: BaseFilters): Promise<PagadorPaymentStatusData> {
-	const rows = await db
-		.select({
-			paidAmount: sql<string>`coalesce(sum(case when ${lancamentos.isSettled} = true then abs(${lancamentos.amount}) else 0 end), 0)`,
-			paidCount: sql<number>`sum(case when ${lancamentos.isSettled} = true then 1 else 0 end)`,
-			pendingAmount: sql<string>`coalesce(sum(case when (${lancamentos.isSettled} = false or ${lancamentos.isSettled} is null) then abs(${lancamentos.amount}) else 0 end), 0)`,
-			pendingCount: sql<number>`sum(case when (${lancamentos.isSettled} = false or ${lancamentos.isSettled} is null) then 1 else 0 end)`,
-		})
-		.from(lancamentos)
-		.where(
-			and(
-				eq(lancamentos.userId, userId),
-				eq(lancamentos.pagadorId, pagadorId),
-				eq(lancamentos.period, period),
-				eq(lancamentos.transactionType, DESPESA),
-				excludeAutoInvoiceEntries(),
-			),
-		);
-
-	const row = rows[0];
-	if (!row) {
-		return {
-			paidAmount: 0,
-			paidCount: 0,
-			pendingAmount: 0,
-			pendingCount: 0,
-			totalAmount: 0,
-		};
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, [period], {
+		pagadorId,
+	});
+	const rows = rowsByPeriod.get(period) ?? [];
+	let paidAmount = 0;
+	let paidCount = 0;
+	let pendingAmount = 0;
+	let pendingCount = 0;
+	for (const row of rows) {
+		if (row.isSettled === true) {
+			paidAmount += row.amount;
+			paidCount += 1;
+		} else {
+			pendingAmount += row.amount;
+			pendingCount += 1;
+		}
 	}
-
-	const paidAmount = toNumber(row.paidAmount);
-	const paidCount = toNumber(row.paidCount);
-	const pendingAmount = toNumber(row.pendingAmount);
-	const pendingCount = toNumber(row.pendingCount);
-
 	return {
 		paidAmount,
 		paidCount,

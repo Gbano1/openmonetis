@@ -1,9 +1,9 @@
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
-import { categorias, lancamentos, orcamentos } from "@/db/schema";
-import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
+import { and, eq, inArray } from "drizzle-orm";
+import { categorias, orcamentos } from "@/db/schema";
 import { toNumber } from "@/lib/dashboard/common";
 import { db } from "@/lib/db";
 import { getAdminPagadorId } from "@/lib/pagadores/get-admin-id";
+import { fetchExpenseRowsForPeriods } from "@/lib/dashboard/expense-rows-for-period";
 import { calculatePercentageChange } from "@/lib/utils/math";
 import { getPreviousPeriod } from "@/lib/utils/period";
 
@@ -36,37 +36,45 @@ export async function fetchExpensesByCategory(
 		return { categories: [], currentTotal: 0, previousTotal: 0 };
 	}
 
-	// Single query: GROUP BY categoriaId + period for both current and previous periods
-	const [rows, budgetRows] = await Promise.all([
-		db
-			.select({
-				categoryId: categorias.id,
-				categoryName: categorias.name,
-				categoryIcon: categorias.icon,
-				period: lancamentos.period,
-				total: sql<number>`coalesce(sum(${lancamentos.amount}), 0)`,
-			})
-			.from(lancamentos)
-			.innerJoin(categorias, eq(lancamentos.categoriaId, categorias.id))
-			.where(
-				and(
-					eq(lancamentos.userId, userId),
-					eq(lancamentos.pagadorId, adminPagadorId),
-					inArray(lancamentos.period, [period, previousPeriod]),
-					eq(lancamentos.transactionType, "Despesa"),
-					eq(categorias.type, "despesa"),
-					or(
-						isNull(lancamentos.note),
-						sql`${lancamentos.note} NOT LIKE ${`${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`}`,
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, [
+		period,
+		previousPeriod,
+	], { adminOnly: true });
+
+	const currentRows = rowsByPeriod.get(period) ?? [];
+	const previousRows = rowsByPeriod.get(previousPeriod) ?? [];
+
+	const byCategory = new Map<
+		string,
+		{ current: number; previous: number }
+	>();
+	for (const row of currentRows) {
+		const id = row.categoriaId ?? "";
+		if (!id) continue;
+		const cur = byCategory.get(id) ?? { current: 0, previous: 0 };
+		cur.current += row.amount;
+		byCategory.set(id, cur);
+	}
+	for (const row of previousRows) {
+		const id = row.categoriaId ?? "";
+		if (!id) continue;
+		const cur = byCategory.get(id) ?? { current: 0, previous: 0 };
+		cur.previous += row.amount;
+		byCategory.set(id, cur);
+	}
+
+	const categoryIds = Array.from(byCategory.keys());
+
+	const [categoriasRows, budgetRows] = await Promise.all([
+		categoryIds.length > 0
+			? db.query.categorias.findMany({
+					where: and(
+						inArray(categorias.id, categoryIds),
+						eq(categorias.type, "despesa"),
 					),
-				),
-			)
-			.groupBy(
-				categorias.id,
-				categorias.name,
-				categorias.icon,
-				lancamentos.period,
-			),
+					columns: { id: true, name: true, icon: true },
+				})
+			: [],
 		db
 			.select({
 				categoriaId: orcamentos.categoriaId,
@@ -76,7 +84,6 @@ export async function fetchExpensesByCategory(
 			.where(and(eq(orcamentos.userId, userId), eq(orcamentos.period, period))),
 	]);
 
-	// Build budget lookup
 	const budgetMap = new Map<string, number>();
 	for (const row of budgetRows) {
 		if (row.categoriaId) {
@@ -84,62 +91,36 @@ export async function fetchExpensesByCategory(
 		}
 	}
 
-	// Build category data from grouped results
-	const categoryMap = new Map<
-		string,
-		{
-			name: string;
-			icon: string | null;
-			current: number;
-			previous: number;
-		}
-	>();
+	const categoryNameMap = new Map(
+		categoriasRows.map((c) => [c.id, { name: c.name, icon: c.icon }]),
+	);
 
-	for (const row of rows) {
-		const entry = categoryMap.get(row.categoryId) ?? {
-			name: row.categoryName,
-			icon: row.categoryIcon,
-			current: 0,
-			previous: 0,
-		};
-
-		const amount = Math.abs(toNumber(row.total));
-		if (row.period === period) {
-			entry.current = amount;
-		} else {
-			entry.previous = amount;
-		}
-		categoryMap.set(row.categoryId, entry);
-	}
-
-	// Calculate totals
 	let currentTotal = 0;
 	let previousTotal = 0;
-	for (const entry of categoryMap.values()) {
+	for (const entry of byCategory.values()) {
 		currentTotal += entry.current;
 		previousTotal += entry.previous;
 	}
 
-	// Build result
 	const categories: CategoryExpenseItem[] = [];
-	for (const [categoryId, entry] of categoryMap) {
+	for (const [categoryId, entry] of byCategory) {
+		const meta = categoryNameMap.get(categoryId);
+		if (!meta) continue;
 		const percentageChange = calculatePercentageChange(
 			entry.current,
 			entry.previous,
 		);
 		const percentageOfTotal =
 			currentTotal > 0 ? (entry.current / currentTotal) * 100 : 0;
-
 		const budgetAmount = budgetMap.get(categoryId) ?? null;
 		const budgetUsedPercentage =
 			budgetAmount && budgetAmount > 0
 				? (entry.current / budgetAmount) * 100
 				: null;
-
 		categories.push({
 			categoryId,
-			categoryName: entry.name,
-			categoryIcon: entry.icon,
+			categoryName: meta.name,
+			categoryIcon: meta.icon,
 			currentAmount: entry.current,
 			previousAmount: entry.previous,
 			percentageChange,
@@ -148,8 +129,6 @@ export async function fetchExpensesByCategory(
 			budgetUsedPercentage,
 		});
 	}
-
-	// Ordena por valor atual (maior para menor)
 	categories.sort((a, b) => b.currentAmount - a.currentAmount);
 
 	return {

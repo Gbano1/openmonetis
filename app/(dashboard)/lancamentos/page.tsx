@@ -27,6 +27,7 @@ export default async function Page({ searchParams }: PageProps) {
 	const userId = await getUserId();
 	const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
+	// Período da aba = apenas mês (YYYY-MM). Não usa ciclo de fatura do cartão.
 	const periodoParamRaw = getSingleParam(resolvedSearchParams, "periodo");
 	const { period: selectedPeriod } = parsePeriodParam(periodoParamRaw);
 
