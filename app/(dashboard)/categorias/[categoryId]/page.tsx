@@ -2,15 +2,22 @@ import { notFound } from "next/navigation";
 import { fetchUserPreferences } from "@/app/(dashboard)/ajustes/data";
 import { getRecentEstablishmentsAction } from "@/app/(dashboard)/lancamentos/actions";
 import { CategoryDetailHeader } from "@/components/categorias/category-detail-header";
+import { CategoryPeriodModeFilter } from "@/components/categorias/category-period-mode-filter";
 import { LancamentosPage } from "@/components/lancamentos/page/lancamentos-page";
 import MonthNavigation from "@/components/month-picker/month-navigation";
+import { and, eq } from "drizzle-orm";
+import { categorias } from "@/db/schema";
 import { getUserId } from "@/lib/auth/server";
-import { fetchCategoryDetails } from "@/lib/dashboard/categories/category-details";
+import {
+	fetchCategoryDetails,
+	type CategoryPeriodMode,
+} from "@/lib/dashboard/categories/category-details";
 import {
 	buildOptionSets,
 	buildSluggedFilters,
 	fetchLancamentoFilterSources,
 } from "@/lib/lancamentos/page-helpers";
+import { db } from "@/lib/db";
 import { displayPeriod, parsePeriodParam } from "@/lib/utils/period";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -29,6 +36,17 @@ const getSingleParam = (
 	return Array.isArray(value) ? (value[0] ?? null) : value;
 };
 
+const VALID_FILTRO = new Set<string>(["mes", "fatura-cartao"]);
+
+function parseFiltro(
+	raw: string | null | undefined,
+	categoryType: "receita" | "despesa",
+): CategoryPeriodMode {
+	if (categoryType === "receita") return "mes";
+	const v = raw?.toLowerCase();
+	return VALID_FILTRO.has(v ?? "") ? (v as CategoryPeriodMode) : "fatura-cartao";
+}
+
 export default async function Page({ params, searchParams }: PageProps) {
 	const { categoryId } = await params;
 	const userId = await getUserId();
@@ -36,9 +54,22 @@ export default async function Page({ params, searchParams }: PageProps) {
 
 	const periodoParam = getSingleParam(resolvedSearchParams, "periodo");
 	const { period: selectedPeriod } = parsePeriodParam(periodoParam);
+	const filtroParam = getSingleParam(resolvedSearchParams, "filtro");
+
+	const categoryRow = await db.query.categorias.findFirst({
+		where: and(eq(categorias.userId, userId), eq(categorias.id, categoryId)),
+		columns: { id: true, type: true },
+	});
+	if (!categoryRow) {
+		notFound();
+	}
+	const periodMode = parseFiltro(
+		filtroParam,
+		categoryRow.type as "receita" | "despesa",
+	);
 
 	const [detail, filterSources, estabelecimentos, userPreferences] = await Promise.all([
-		fetchCategoryDetails(userId, categoryId, selectedPeriod),
+		fetchCategoryDetails(userId, categoryId, selectedPeriod, periodMode),
 		fetchLancamentoFilterSources(userId),
 		getRecentEstablishmentsAction(),
 		fetchUserPreferences(userId),
@@ -66,10 +97,16 @@ export default async function Page({ params, searchParams }: PageProps) {
 
 	const currentPeriodLabel = displayPeriod(detail.period);
 	const previousPeriodLabel = displayPeriod(detail.previousPeriod);
+	const showPeriodModeFilter = detail.category.type === "despesa";
 
 	return (
 		<main className="flex flex-col gap-6">
-			<MonthNavigation />
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<MonthNavigation />
+				{showPeriodModeFilter && (
+					<CategoryPeriodModeFilter currentMode={detail.periodMode} />
+				)}
+			</div>
 			<CategoryDetailHeader
 				category={detail.category}
 				currentPeriodLabel={currentPeriodLabel}

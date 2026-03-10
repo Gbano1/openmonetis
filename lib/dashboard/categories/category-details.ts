@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { categorias, contas, lancamentos, pagadores } from "@/db/schema";
 import {
 	ACCOUNT_AUTO_INVOICE_NOTE_PREFIX,
@@ -7,11 +7,15 @@ import {
 import type { CategoryType } from "@/lib/categorias/constants";
 import { toNumber } from "@/lib/dashboard/common";
 import { db } from "@/lib/db";
+import { fetchExpenseRowsForPeriods } from "@/lib/dashboard/expense-rows-for-period";
 import { mapLancamentosData } from "@/lib/lancamentos/page-helpers";
 import { PAGADOR_ROLE_ADMIN } from "@/lib/pagadores/constants";
 import { getPreviousPeriod } from "@/lib/utils/period";
 
 type MappedLancamentos = ReturnType<typeof mapLancamentosData>;
+
+/** "mes" = pelo campo period do lançamento; "fatura-cartao" = pela data de compra no ciclo da fatura (só despesa). */
+export type CategoryPeriodMode = "mes" | "fatura-cartao";
 
 export type CategoryDetailData = {
 	category: {
@@ -26,6 +30,8 @@ export type CategoryDetailData = {
 	previousTotal: number;
 	percentageChange: number | null;
 	transactions: MappedLancamentos;
+	/** Modo usado para calcular totais/lista (para exibir no header). */
+	periodMode: CategoryPeriodMode;
 };
 
 const calculatePercentageChange = (
@@ -49,6 +55,7 @@ export async function fetchCategoryDetails(
 	userId: string,
 	categoryId: string,
 	period: string,
+	periodMode: CategoryPeriodMode = "mes",
 ): Promise<CategoryDetailData | null> {
 	const category = await db.query.categorias.findFirst({
 		where: and(eq(categorias.userId, userId), eq(categorias.id, categoryId)),
@@ -59,6 +66,19 @@ export async function fetchCategoryDetails(
 	}
 
 	const previousPeriod = getPreviousPeriod(period);
+	const isDespesa = category.type === "despesa";
+
+	if (isDespesa && periodMode === "fatura-cartao") {
+		return fetchCategoryDetailsByInvoiceCycle(
+			userId,
+			categoryId,
+			period,
+			previousPeriod,
+			category,
+		);
+	}
+
+	// Receita ou modo "mes": pelo campo period
 	const transactionType = category.type === "receita" ? "Receita" : "Despesa";
 
 	const sanitizedNote = or(
@@ -84,24 +104,19 @@ export async function fetchCategoryDetails(
 	});
 
 	const filteredRows = currentRows.filter((row) => {
-		// Filtrar apenas pagadores admin
 		if (row.pagador?.role !== PAGADOR_ROLE_ADMIN) return false;
-
-		// Excluir saldos iniciais se a conta tiver o flag ativo
 		if (
 			row.note === INITIAL_BALANCE_NOTE &&
 			row.conta?.excludeInitialBalanceFromIncome
 		) {
 			return false;
 		}
-
 		return true;
 	});
 
 	const transactions = mapLancamentosData(filteredRows);
-
 	const currentTotal = transactions.reduce(
-		(total, transaction) => total + Math.abs(toNumber(transaction.amount)),
+		(total, t) => total + Math.abs(toNumber(t.amount)),
 		0,
 	);
 
@@ -120,7 +135,6 @@ export async function fetchCategoryDetails(
 				eq(pagadores.role, PAGADOR_ROLE_ADMIN),
 				sanitizedNote,
 				eq(lancamentos.period, previousPeriod),
-				// Excluir saldos iniciais se a conta tiver o flag ativo
 				or(
 					ne(lancamentos.note, INITIAL_BALANCE_NOTE),
 					isNull(contas.excludeInitialBalanceFromIncome),
@@ -148,5 +162,70 @@ export async function fetchCategoryDetails(
 		previousTotal,
 		percentageChange,
 		transactions,
+		periodMode: "mes",
+	};
+}
+
+/** Despesa: totais e lista pelo ciclo da fatura do cartão (igual à dashboard). */
+async function fetchCategoryDetailsByInvoiceCycle(
+	userId: string,
+	categoryId: string,
+	period: string,
+	previousPeriod: string,
+	category: { id: string; name: string; icon: string | null; type: string },
+): Promise<CategoryDetailData | null> {
+	const { rowsByPeriod } = await fetchExpenseRowsForPeriods(userId, [
+		period,
+		previousPeriod,
+	], { adminOnly: true });
+
+	const currentRows = (rowsByPeriod.get(period) ?? []).filter(
+		(r) => r.categoriaId === categoryId,
+	);
+	const previousRows = (rowsByPeriod.get(previousPeriod) ?? []).filter(
+		(r) => r.categoriaId === categoryId,
+	);
+
+	const currentTotal = currentRows.reduce((s, r) => s + r.amount, 0);
+	const previousTotal = previousRows.reduce((s, r) => s + r.amount, 0);
+	const percentageChange = calculatePercentageChange(
+		currentTotal,
+		previousTotal,
+	);
+
+	const ids = currentRows.map((r) => r.id);
+	const fullRows =
+		ids.length > 0
+			? await db.query.lancamentos.findMany({
+					where: and(
+						eq(lancamentos.userId, userId),
+						inArray(lancamentos.id, ids),
+					),
+					with: {
+						pagador: true,
+						conta: true,
+						cartao: true,
+						categoria: true,
+					},
+					orderBy: [desc(lancamentos.purchaseDate), desc(lancamentos.createdAt)],
+				})
+			: [];
+
+	const transactions = mapLancamentosData(fullRows);
+
+	return {
+		category: {
+			id: category.id,
+			name: category.name,
+			icon: category.icon,
+			type: category.type as CategoryType,
+		},
+		period,
+		previousPeriod,
+		currentTotal,
+		previousTotal,
+		percentageChange,
+		transactions,
+		periodMode: "fatura-cartao",
 	};
 }

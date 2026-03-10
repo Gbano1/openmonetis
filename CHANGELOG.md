@@ -5,6 +5,24 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.7] - 2026-02-18
+
+### Adicionado
+
+- **Página da categoria** (/categorias/[categoryId]): filtro com duas opções — **"Baseado no mês"** (pelo campo `period` do lançamento) e **"Baseado na fatura do cartão"** (pela data de compra no ciclo de fechamento, igual à dashboard). Para categorias de despesa o padrão é "Baseado na fatura do cartão", para o valor bater com o widget ao clicar na dashboard
+
+### Alterado
+
+- **Receita na dashboard:** contagem passou a incluir o valor de **todas as contas bancárias**; removido o filtro por `excludeInitialBalanceFromIncome` em métricas (cards), gráfico Receita/Despesa/Balanço e Categorias por Receitas, para que o total reflita todas as contas
+- **Dialog (popups)** no mobile: altura máxima (90dvh) e rolagem quando o conteúdo não cabe na tela; barra de rolagem invisível (scroll continua funcionando)
+
+### Corrigido
+
+- Contagem de receita na dashboard não incluindo o valor de todas as contas bancárias
+- Valor diferente na página da categoria em relação ao widget da dashboard ao clicar em uma categoria de despesa (agora é possível alinhar pelo filtro "Baseado na fatura do cartão")
+
+**Contribuições:** [Guilherme Bano](https://github.com/Gbano1)
+
 ## [1.6.6] - 2026-02-18
 
 ### Alterado

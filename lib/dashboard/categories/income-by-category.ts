@@ -1,9 +1,6 @@
-import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
-import { categorias, contas, lancamentos, orcamentos } from "@/db/schema";
-import {
-	ACCOUNT_AUTO_INVOICE_NOTE_PREFIX,
-	INITIAL_BALANCE_NOTE,
-} from "@/lib/accounts/constants";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { categorias, lancamentos, orcamentos } from "@/db/schema";
+import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
 import { db } from "@/lib/db";
 import { getAdminPagadorId } from "@/lib/pagadores/get-admin-id";
 import { calculatePercentageChange } from "@/lib/utils/math";
@@ -51,7 +48,6 @@ export async function fetchIncomeByCategory(
 			})
 			.from(lancamentos)
 			.innerJoin(categorias, eq(lancamentos.categoriaId, categorias.id))
-			.leftJoin(contas, eq(lancamentos.contaId, contas.id))
 			.where(
 				and(
 					eq(lancamentos.userId, userId),
@@ -62,12 +58,6 @@ export async function fetchIncomeByCategory(
 					or(
 						isNull(lancamentos.note),
 						sql`${lancamentos.note} NOT LIKE ${`${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`}`,
-					),
-					// Excluir saldos iniciais se a conta tiver o flag ativo
-					or(
-						ne(lancamentos.note, INITIAL_BALANCE_NOTE),
-						isNull(contas.excludeInitialBalanceFromIncome),
-						eq(contas.excludeInitialBalanceFromIncome, false),
 					),
 				),
 			)

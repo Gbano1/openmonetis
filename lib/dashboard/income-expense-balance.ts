@@ -1,9 +1,6 @@
-import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
-import { contas, lancamentos } from "@/db/schema";
-import {
-	ACCOUNT_AUTO_INVOICE_NOTE_PREFIX,
-	INITIAL_BALANCE_NOTE,
-} from "@/lib/accounts/constants";
+import { and, eq, inArray, sql } from "drizzle-orm";
+import { lancamentos } from "@/db/schema";
+import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
 import { toNumber } from "@/lib/dashboard/common";
 import { db } from "@/lib/db";
 import { getAdminPagadorId } from "@/lib/pagadores/get-admin-id";
@@ -75,7 +72,7 @@ export async function fetchIncomeExpenseBalance(
 
 	const periods = generateLast6Months(currentPeriod);
 
-	// Receita: por period do lançamento
+	// Receita: por period do lançamento; incluir de todas as contas (sem filtrar por excludeInitialBalanceFromIncome)
 	const [receitaRows, { rowsByPeriod }] = await Promise.all([
 		db
 			.select({
@@ -83,7 +80,6 @@ export async function fetchIncomeExpenseBalance(
 				total: sql<number>`coalesce(sum(${lancamentos.amount}), 0)`,
 			})
 			.from(lancamentos)
-			.leftJoin(contas, eq(lancamentos.contaId, contas.id))
 			.where(
 				and(
 					eq(lancamentos.userId, userId),
@@ -91,11 +87,6 @@ export async function fetchIncomeExpenseBalance(
 					inArray(lancamentos.period, periods),
 					eq(lancamentos.transactionType, "Receita"),
 					sql`(${lancamentos.note} IS NULL OR ${lancamentos.note} NOT LIKE ${`${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`})`,
-					or(
-						ne(lancamentos.note, INITIAL_BALANCE_NOTE),
-						isNull(contas.excludeInitialBalanceFromIncome),
-						eq(contas.excludeInitialBalanceFromIncome, false),
-					),
 				),
 			)
 			.groupBy(lancamentos.period),

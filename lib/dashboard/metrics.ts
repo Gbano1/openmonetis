@@ -1,9 +1,6 @@
 import { and, asc, eq, gte, ilike, isNull, lte, ne, not, or } from "drizzle-orm";
-import { cartoes, contas, lancamentos } from "@/db/schema";
-import {
-	ACCOUNT_AUTO_INVOICE_NOTE_PREFIX,
-	INITIAL_BALANCE_NOTE,
-} from "@/lib/accounts/constants";
+import { cartoes, lancamentos } from "@/db/schema";
+import { ACCOUNT_AUTO_INVOICE_NOTE_PREFIX } from "@/lib/accounts/constants";
 import { db } from "@/lib/db";
 import { getAdminPagadorId } from "@/lib/pagadores/get-admin-id";
 import { safeToNumber } from "@/lib/utils/number";
@@ -86,6 +83,8 @@ export async function fetchDashboardCardMetrics(
 	// Limitar scan histórico a 24 meses para evitar scans progressivamente mais lentos
 	const startPeriod = addMonthsToPeriod(period, -24);
 
+	// Receita e despesa: incluir de todas as contas. Não excluir saldo inicial por conta
+	// (excludeInitialBalanceFromIncome) para que o total de receita reflita todas as contas bancárias.
 	const baseWhere = and(
 		eq(lancamentos.userId, userId),
 		eq(lancamentos.pagadorId, adminPagadorId),
@@ -95,11 +94,6 @@ export async function fetchDashboardCardMetrics(
 		or(
 			isNull(lancamentos.note),
 			not(ilike(lancamentos.note, `${ACCOUNT_AUTO_INVOICE_NOTE_PREFIX}%`)),
-		),
-		or(
-			ne(lancamentos.note, INITIAL_BALANCE_NOTE),
-			isNull(contas.excludeInitialBalanceFromIncome),
-			eq(contas.excludeInitialBalanceFromIncome, false),
 		),
 	);
 
@@ -117,7 +111,6 @@ export async function fetchDashboardCardMetrics(
 				cartaoId: lancamentos.cartaoId,
 			})
 			.from(lancamentos)
-			.leftJoin(contas, eq(lancamentos.contaId, contas.id))
 			.where(baseWhere)
 			.orderBy(asc(lancamentos.period), asc(lancamentos.transactionType)),
 	]);
